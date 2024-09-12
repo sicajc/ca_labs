@@ -1,0 +1,60 @@
+g++ -std=c++17 -isystem /usr/local/include -pthread -g debug/cache_test.c debug/d_cache_get.c debug/i_cache_get.c debug/ultility.c -lgtest -lgtest_main -o cache_test
+debug/cache_test.c: In function ‘int main()’:
+debug/cache_test.c:548:18: warning: ignoring return value of ‘int RUN_ALL_TESTS()’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  548 |     RUN_ALL_TESTS();
+      |     ~~~~~~~~~~~~~^~
+./cache_test
+Note: Google Test filter = cache_test.D_cache_rd_wr_test_writeback
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from cache_test
+[ RUN      ] cache_test.D_cache_rd_wr_test_writeback
+Read command: 1  Addr: 386
+debug/cache_test.c:533: Failure
+Expected equality of these values:
+  test_data
+    Which is: 348
+  golden_data
+    Which is: 67
+Num of tests: 0  Addrs:386 Byte addr:386  Word addr:96
+
+[  FAILED  ] cache_test.D_cache_rd_wr_test_writeback (28 ms)
+[----------] 1 test from cache_test (28 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (28 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] cache_test.D_cache_rd_wr_test_writeback
+
+ 1 FAILED TEST
+g++ -std=c++17 -isystem /usr/local/include -pthread -g debug/cache_test.c debug/d_cache_get.c debug/i_cache_get.c debug/ultility.c -lgtest -lgtest_main -o cache_test
+debug/cache_test.c: In function ‘int main()’:
+debug/cache_test.c:548:18: warning: ignoring return value of ‘int RUN_ALL_TESTS()’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  548 |     RUN_ALL_TESTS();
+      |     ~~~~~~~~~~~~~^~
+./cache_test
+Note: Google Test filter = cache_test.D_cache_rd_wr_test_writeback
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from cache_test
+[ RUN      ] cache_test.D_cache_rd_wr_test_writeback
+Read command: 1  Addr: 386
+debug/cache_test.c:533: Failure
+Expected equality of these values:
+  test_data
+    Which is: 348
+  golden_data
+    Which is: 67
+Num of tests: 0  Addrs:386 Byte addr:386  Word addr:96
+
+[  FAILED  ] cache_test.D_cache_rd_wr_test_writeback (29 ms)
+[----------] 1 test from cache_test (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (29 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] cache_test.D_cache_rd_wr_test_writeback
+
+ 1 FAILED TEST
