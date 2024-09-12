@@ -9,6 +9,7 @@
 #include "pipe.h"
 #include "shell.h"
 #include "mips.h"
+#include "cache.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -754,14 +755,18 @@ void pipe_stage_fetch()
         return;
 
     /* Allocate an op and send it down the pipeline. */
-    Pipe_Op *op = malloc(sizeof(Pipe_Op));
+    Pipe_Op *op = (Pipe_Op*)malloc(sizeof(Pipe_Op));
     memset(op, 0, sizeof(Pipe_Op));
+
     // First sets the reg_srcs all to -1
     op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
 
     // This should be replaced with interaction wth I-Cache & add the possible stall commands
     // The instruction after this stage is not stalled
     op->instruction = mem_read_32(pipe.PC);
+
+    // To add
+    // op->instruction = i_cache(pipe.PC,1);
 
     op->pc = pipe.PC;
     pipe.decode_op = op;

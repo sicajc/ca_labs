@@ -1,4 +1,4 @@
-SRC = $(wildcard src/*.c)
+SRC = $(wildcard src/*.c src/*h)
 # I want to search for every file that conatains cache
 # and ends with .c
 DEBUG_SRC = $(wildcard debug/*.c)
@@ -29,7 +29,7 @@ exe_test:
 all: sim
 
 sim: $(SRC)
-	gcc -g -O2 $^ -o $@
+	gcc -g -O2 $^ -o $@ -lm
 
 basesim: $(SRC)
 	gcc -g -O2 $^ -o $@

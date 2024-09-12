@@ -68,8 +68,8 @@ int RUN_BIT = TRUE;
 /***************************************************************/
 uint32_t mem_read_32(uint32_t address)
 {
-    int i;
-    for (i = 0; i < MEM_NREGIONS; i++) {
+    // reads a word, 32 bits = 4 bytes gets read from the memory
+    for (unsigned int i = 0; i < MEM_NREGIONS; i++) {
         if (address >= MEM_REGIONS[i].start &&
                 address < (MEM_REGIONS[i].start + MEM_REGIONS[i].size)) {
             uint32_t offset = address - MEM_REGIONS[i].start;
@@ -319,7 +319,7 @@ void get_command() {
 void init_memory() {
     int i;
     for (i = 0; i < MEM_NREGIONS; i++) {
-        MEM_REGIONS[i].mem = malloc(MEM_REGIONS[i].size);
+        MEM_REGIONS[i].mem = (uint8_t *) malloc(MEM_REGIONS[i].size);
         memset(MEM_REGIONS[i].mem, 0, MEM_REGIONS[i].size);
     }
 }

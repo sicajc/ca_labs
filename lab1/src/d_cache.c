@@ -1,10 +1,9 @@
 #include "cache.h"
 #include <assert.h>
-#include <iostream>
 
-cache_block d_cache[D_CACHE_SETS][D_CACHE_WAYS];
+cache_block d_cache_mem[D_CACHE_SETS][D_CACHE_WAYS];
 
-uint32_t d_cache_get(bool read,
+uint32_t d_cache(bool read,
                      uint32_t data,
                      uint32_t addr,
                      uint32_t *time)
@@ -13,10 +12,10 @@ uint32_t d_cache_get(bool read,
     // tag has 19 bits, index has 8 bits and offset has 5 bits
 
     cache_info_t cache_info = calculate_cache_info(addr,
-                                                   uint32_t(WORD_SIZE),
-                                                   uint32_t(D_CACHE_SIZE),
-                                                   uint32_t(D_CACHE_WAYS),
-                                                   uint32_t(D_CACHE_BLOCK_SIZE));
+                                                   WORD_SIZE,
+                                                   D_CACHE_SIZE,
+                                                   D_CACHE_WAYS,
+                                                   D_CACHE_BLOCK_SIZE);
 
     uint32_t tag = cache_info.tags;
     uint32_t index = cache_info.index;
@@ -39,18 +38,18 @@ uint32_t d_cache_get(bool read,
     for (int set_iter = 0; set_iter < D_CACHE_WAYS; set_iter++)
     {
         // hits
-        if (d_cache[index][set_iter].key.tag == tag && d_cache[index][set_iter].key.valid == 1)
+        if (d_cache_mem[index][set_iter].key.tag == tag && d_cache_mem[index][set_iter].key.valid == 1)
         {
             // during a hit, update the LRU counter, decrement other blocks lru counter
-            d_cache[index][set_iter].key.lru_cnt = D_CACHE_WAYS - 1;
+            d_cache_mem[index][set_iter].key.lru_cnt = D_CACHE_WAYS - 1;
             // Decrement the LRU counter for other blocks
             for (int set_iter2 = 0; set_iter2 < D_CACHE_WAYS; set_iter2++)
             {
                 if (set_iter2 != set_iter)
                 {
-                    if (d_cache[index][set_iter2].key.lru_cnt > 0)
+                    if (d_cache_mem[index][set_iter2].key.lru_cnt > 0)
                     {
-                        d_cache[index][set_iter2].key.lru_cnt--;
+                        d_cache_mem[index][set_iter2].key.lru_cnt--;
                     }
                 }
             }
@@ -58,12 +57,12 @@ uint32_t d_cache_get(bool read,
             if (read == false)
             {
                 // write to the cache
-                d_cache[index][set_iter].value.value[offset] = data;
+                d_cache_mem[index][set_iter].value.value[offset] = data;
                 // mark the dirt bit
-                d_cache[index][set_iter].key.dirty = 1;
+                d_cache_mem[index][set_iter].key.dirty = 1;
             }
 
-            return d_cache[index][set_iter].value.value[offset];
+            return d_cache_mem[index][set_iter].value.value[offset];
         }
     }
 
@@ -76,7 +75,7 @@ uint32_t d_cache_get(bool read,
     for (int set_iter = 0; set_iter < D_CACHE_WAYS; set_iter++)
     {
         // Fill in the invalid cache block first, if there is invalid cache block, fill it first
-        if (d_cache[index][set_iter].key.valid == 0)
+        if (d_cache_mem[index][set_iter].key.valid == 0)
         {
             least_lru_block_num = set_iter;
             break;
@@ -85,48 +84,49 @@ uint32_t d_cache_get(bool read,
         // search for the LRU block
         // Traverse the block of the set, record the number
         // of the LRU block, later replace this block with new mem block
-        if (d_cache[index][set_iter].key.lru_cnt < least_lru_cnt_val)
+        if (d_cache_mem[index][set_iter].key.lru_cnt < least_lru_cnt_val)
         {
-            least_lru_cnt_val = d_cache[index][set_iter].key.lru_cnt;
+            least_lru_cnt_val = d_cache_mem[index][set_iter].key.lru_cnt;
             least_lru_block_num = set_iter;
         }
     }
 
     // Replace the LRU block with the new value
-    d_cache[index][least_lru_block_num].key.valid = 1;
-    d_cache[index][least_lru_block_num].key.lru_cnt = D_CACHE_WAYS - 1;
-    d_cache[index][least_lru_block_num].key.tag = tag;
+    d_cache_mem[index][least_lru_block_num].key.valid = 1;
+    d_cache_mem[index][least_lru_block_num].key.lru_cnt = D_CACHE_WAYS - 1;
+    d_cache_mem[index][least_lru_block_num].key.tag = tag;
 
     // Decrements the LRU counter for other blocks
     for (int set_iter = 0; set_iter < D_CACHE_WAYS; set_iter++)
     {
         if (set_iter != least_lru_block_num)
         {
-            if (d_cache[index][set_iter].key.lru_cnt > 0)
+            if (d_cache_mem[index][set_iter].key.lru_cnt > 0)
             {
-                d_cache[index][set_iter].key.lru_cnt--;
+                d_cache_mem[index][set_iter].key.lru_cnt--;
             }
         }
     }
 
     // The blocks is going to be replaced, if this is a dirty blocks, writes it back to memory
-    if (d_cache[index][least_lru_block_num].key.dirty == 1)
+    if (d_cache_mem[index][least_lru_block_num].key.dirty == 1)
     {
         // write the whole block back to memory
         for (int word_iter = 0; word_iter < D_CACHE_WORDS_IN_BLOCK; word_iter++)
         {
-            uint32_t word = d_cache[index][least_lru_block_num].value.value[word_iter];
+            uint32_t word = d_cache_mem[index][least_lru_block_num].value.value[word_iter];
 
-            uint32_t wb_block_addr = (d_cache[index][least_lru_block_num].key.tag << cache_info.tag_bit_shift) | (index << cache_info.index_bit_shift);
-            // Fetch the data from memory, use 1234 as the value first, fetch 32bits at once
-            pseudo_data_mem[wb_block_addr + word_iter] = word;
+            uint32_t wb_block_addr = (d_cache_mem[index][least_lru_block_num].key.tag << cache_info.tag_bit_shift) | (index << cache_info.index_bit_shift);
+
+            // Replace this with memory writes function
+            // pseudo_data_mem[wb_block_addr + word_iter] = word;
         }
 
         // set the block to clean
-        d_cache[index][least_lru_block_num].key.dirty = 0;
+        d_cache_mem[index][least_lru_block_num].key.dirty = 0;
     }
 
-    // read to the cache from memory
+    // Fetch the whole block from the memory
     for (int word_iter = 0; word_iter < D_CACHE_WORDS_IN_BLOCK; word_iter++)
     {
         // Fetch the data from memory, use 1234 as the value first, fetch 32bits at once
@@ -135,16 +135,18 @@ uint32_t d_cache_get(bool read,
         uint32_t word_addr = addr / WORD;
         uint32_t block_addr_start = word_addr / BLOCK;
 
-        uint32_t word = pseudo_data_mem[block_addr_start * BLOCK + word_iter];
-        d_cache[index][least_lru_block_num].value.value[word_iter] = word;
+        // replace this with memory read function
+        // uint32_t word = pseudo_data_mem[block_addr_start * BLOCK + word_iter];
+        uint32_t word = 0;
+        d_cache_mem[index][least_lru_block_num].value.value[word_iter] = word;
     }
 
     if (read == false) // write
     {
         // write to the cache block
-        d_cache[index][least_lru_block_num].value.value[offset] = data;
-        d_cache[index][least_lru_block_num].key.dirty = 1;
+        d_cache_mem[index][least_lru_block_num].value.value[offset] = data;
+        d_cache_mem[index][least_lru_block_num].key.dirty = 1;
     }
 
-    return d_cache[index][least_lru_block_num].value.value[offset];
+    return d_cache_mem[index][least_lru_block_num].value.value[offset];
 }

@@ -1,9 +1,10 @@
 #include "cache.h"
+#include "shell.h"
 #include <assert.h>
 
-cache_block i_cache[I_CACHE_SETS][I_CACHE_WAYS];
+cache_block i_cache_mem[I_CACHE_SETS][I_CACHE_WAYS];
 
-uint32_t i_cache_get(uint32_t addr, uint32_t *time)
+uint32_t i_cache(uint32_t addr, uint32_t *time)
 {
     //@param addr: the pc address to be read, multiple of 4 bytes
     //@param time: the cycle time taken to read the data
@@ -15,10 +16,10 @@ uint32_t i_cache_get(uint32_t addr, uint32_t *time)
     // tag has 21 bits, index has 6 bits and offset has 5 bits
 
     cache_info_t cache_info = calculate_cache_info(addr,
-                                                   uint32_t(WORD_SIZE),
-                                                   uint32_t(I_CACHE_SIZE),
-                                                   uint32_t(I_CACHE_WAYS),
-                                                   uint32_t(I_CACHE_BLOCK_SIZE));
+                                                   (uint32_t)WORD_SIZE,
+                                                   (uint32_t)I_CACHE_SIZE,
+                                                   (uint32_t)I_CACHE_WAYS,
+                                                   (uint32_t)I_CACHE_BLOCK_SIZE);
 
     uint32_t tag = cache_info.tags;
     uint32_t index = cache_info.index;
@@ -28,24 +29,24 @@ uint32_t i_cache_get(uint32_t addr, uint32_t *time)
     for (int set_iter = 0; set_iter < I_CACHE_WAYS; set_iter++)
     {
         // hits
-        if (i_cache[index][set_iter].key.tag == tag && i_cache[index][set_iter].key.valid == 1)
+        if (i_cache_mem[index][set_iter].key.tag == tag && i_cache_mem[index][set_iter].key.valid == 1)
         {
             // during a hit, update the LRU counter, decrement other blocks lru counter
-            i_cache[index][set_iter].key.lru_cnt = I_CACHE_WAYS - 1;
+            i_cache_mem[index][set_iter].key.lru_cnt = I_CACHE_WAYS - 1;
 
             // Decrement the LRU counter for other blocks
             for (int set_iter2 = 0; set_iter2 < I_CACHE_WAYS; set_iter2++)
             {
                 if (set_iter2 != set_iter)
                 {
-                    if (i_cache[index][set_iter2].key.lru_cnt > 0)
+                    if (i_cache_mem[index][set_iter2].key.lru_cnt > 0)
                     {
-                        i_cache[index][set_iter2].key.lru_cnt--;
+                        i_cache_mem[index][set_iter2].key.lru_cnt--;
                     }
                 }
             }
 
-            return i_cache[index][set_iter].value.value[offset];
+            return i_cache_mem[index][set_iter].value.value[offset];
         }
     }
 
@@ -61,7 +62,7 @@ uint32_t i_cache_get(uint32_t addr, uint32_t *time)
     for (int set_iter = 0; set_iter < I_CACHE_WAYS; set_iter++)
     {
         // Fill in the invalid cache block first, if there is invalid cache block, fill it first
-        if (i_cache[index][set_iter].key.valid == 0)
+        if (i_cache_mem[index][set_iter].key.valid == 0)
         {
             least_lru_block_num = set_iter;
             break;
@@ -70,26 +71,26 @@ uint32_t i_cache_get(uint32_t addr, uint32_t *time)
         // search for the LRU block
         // Traverse the block of the set, record the number
         // of the LRU block, later replace this block with new mem block
-        if (i_cache[index][set_iter].key.lru_cnt < least_lru_cnt_val)
+        if (i_cache_mem[index][set_iter].key.lru_cnt < least_lru_cnt_val)
         {
-            least_lru_cnt_val = i_cache[index][set_iter].key.lru_cnt;
+            least_lru_cnt_val = i_cache_mem[index][set_iter].key.lru_cnt;
             least_lru_block_num = set_iter;
         }
     }
 
     // Replace the LRU block with the new value
-    i_cache[index][least_lru_block_num].key.valid = 1;
-    i_cache[index][least_lru_block_num].key.lru_cnt = 3;
-    i_cache[index][least_lru_block_num].key.tag = tag;
+    i_cache_mem[index][least_lru_block_num].key.valid = 1;
+    i_cache_mem[index][least_lru_block_num].key.lru_cnt = 3;
+    i_cache_mem[index][least_lru_block_num].key.tag = tag;
 
     // Decrements the LRU counter for other blocks
     for (int set_iter = 0; set_iter < I_CACHE_WAYS; set_iter++)
     {
         if (set_iter != least_lru_block_num)
         {
-            if (i_cache[index][set_iter].key.lru_cnt > 0)
+            if (i_cache_mem[index][set_iter].key.lru_cnt > 0)
             {
-                i_cache[index][set_iter].key.lru_cnt--;
+                i_cache_mem[index][set_iter].key.lru_cnt--;
             }
         }
     }
@@ -104,8 +105,9 @@ uint32_t i_cache_get(uint32_t addr, uint32_t *time)
 
         uint32_t block_addr_start = word_addr / BLOCK;
 
-        i_cache[index][least_lru_block_num].value.value[word_iter] = inst_mem[block_addr_start * BLOCK + word_iter];
+        // Replace with fetching word from the function
+        // i_cache_mem[index][least_lru_block_num].value.value[word_iter] = inst_mem[block_addr_start * BLOCK + word_iter];
     }
 
-    return i_cache[index][least_lru_block_num].value.value[offset];
+    return i_cache_mem[index][least_lru_block_num].value.value[offset];
 }
