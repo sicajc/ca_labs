@@ -87,6 +87,8 @@ typedef struct Pipe_State {
 
     /* multiplier stall info */
     int multiplier_stall; /* number of remaining cycles until HI/LO are ready */
+    int i_cache_stall;
+    int d_cache_stall;
 
     // Place number of I-$ and D-$ remaining cycles here, how does it handles multiplier stalls? Try to mimic it
 

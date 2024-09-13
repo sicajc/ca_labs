@@ -4,30 +4,30 @@
 void init_cache()
 {
     // Initialize the cache
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < I_CACHE_SETS; i++)
     {
-        for (int j = 0; j < 4; j++)
+        for (int j = 0; j < I_CACHE_WAYS; j++)
         {
             i_cache_mem[i][j].key.dirty = 0;
             i_cache_mem[i][j].key.valid = 0;
-            i_cache_mem[i][j].key.lru_cnt = 0;
+            i_cache_mem[i][j].key.lru_cnt = I_CACHE_WAYS-1;
             i_cache_mem[i][j].key.tag = 0;
-            for (int k = 0; k < 8; k++)
+            for (int k = 0; k < I_CACHE_WORDS_IN_BLOCK; k++)
             {
                 i_cache_mem[i][j].value.value[k] = 0;
             }
         }
     }
 
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < D_CACHE_SETS; i++)
     {
-        for (int j = 0; j < 8; j++)
+        for (int j = 0; j < D_CACHE_WAYS; j++)
         {
             d_cache_mem[i][j].key.dirty = 0;
             d_cache_mem[i][j].key.valid = 0;
-            d_cache_mem[i][j].key.lru_cnt = 0;
+            d_cache_mem[i][j].key.lru_cnt = D_CACHE_WAYS-1;
             d_cache_mem[i][j].key.tag = 0;
-            for (int k = 0; k < 8; k++)
+            for (int k = 0; k < D_CACHE_WAYS; k++)
             {
                 d_cache_mem[i][j].value.value[k] = 0;
             }

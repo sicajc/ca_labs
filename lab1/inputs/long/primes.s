@@ -49,4 +49,3 @@ primeloop:
     # done!
     addiu $v0, $0, 10
     syscall
-
