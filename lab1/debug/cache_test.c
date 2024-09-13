@@ -583,7 +583,7 @@ int main()
 
     // Set the filter to run only the specific test
     // ::testing::GTEST_FLAG(filter) = "cache_test.D_Cache_TestConsecutiveExecutionOfSameSet";
-    // ::testing::GTEST_FLAG(filter) = "cache_test.D_cache_rd_wr_test_writeback";
+    ::testing::GTEST_FLAG(filter) = "cache_test.D_cache_rd_wr_test_writeback";
 
     RUN_ALL_TESTS();
 

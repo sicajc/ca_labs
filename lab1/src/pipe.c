@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #define DEBUG
 
@@ -169,8 +170,23 @@ void pipe_stage_mem()
 
     uint32_t val = 0;
     // Changes this to reads the byte from D$
+    // if (op->is_mem)
+    //     val = mem_read_32(op->mem_addr & ~3);
+    //===================================================================================================
     if (op->is_mem)
-        val = mem_read_32(op->mem_addr & ~3);
+    {
+        // Reading from the memory
+        bool read_cmd = true;
+        uint32_t read_addr = op->mem_addr & ~3;
+        cache_return_data_t cache_return_data = d_cache(read_cmd,
+                                                        0,
+                                                        read_addr,
+                                                        stat_cycles);
+
+        val = cache_return_data.value;
+        stat_cycles = cache_return_data.cycle_time;
+    }
+    //====================================================================================================
 
     // Determines the operations
     switch (op->opcode)
@@ -242,10 +258,23 @@ void pipe_stage_mem()
             val = (val & 0x00FFFFFF) | ((op->mem_value & 0xFF) << 24);
             break;
         }
+        {
+            // Write the 32bits data to the specified cache block
+            // mem_write_32(op->mem_addr & ~3, val);
+            //===================================================================================================
+            // Writing into the memory
+            bool read_cmd = false; // write
+            uint32_t write_addr = op->mem_addr & ~3;
+            cache_return_data_t cache_return_data = d_cache(read_cmd,
+                                                            val,
+                                                            write_addr,
+                                                            stat_cycles);
 
-        // Write the 32bits data to the specified cache block
-        mem_write_32(op->mem_addr & ~3, val);
-        break;
+            stat_cycles = cache_return_data.cycle_time;
+
+            //===================================================================================================
+            break;
+        }
 
     case OP_SH:
 #ifdef DEBUG
@@ -258,13 +287,30 @@ void pipe_stage_mem()
 #ifdef DEBUG
         printf("new word %08x\n", val);
 #endif
-
-        mem_write_32(op->mem_addr & ~3, val);
-        break;
+        {
+            // mem_write_32(op->mem_addr & ~3, val);
+            // Writing into the memory
+            bool read_cmd = false; // write
+            uint32_t write_addr = op->mem_addr & ~3;
+            cache_return_data_t cache_return_data = d_cache(read_cmd,
+                                                            val,
+                                                            write_addr,
+                                                            stat_cycles);
+            stat_cycles = cache_return_data.cycle_time;
+            break;
+        }
 
     case OP_SW:
         val = op->mem_value;
-        mem_write_32(op->mem_addr & ~3, val);
+        // mem_write_32(op->mem_addr & ~3, val);
+        // Writing into the memory
+        bool read_cmd = false; // write
+        uint32_t write_addr = op->mem_addr & ~3;
+        cache_return_data_t cache_return_data = d_cache(read_cmd,
+                                                        val,
+                                                        write_addr,
+                                                        stat_cycles);
+        stat_cycles = cache_return_data.cycle_time;
         break;
     }
 
@@ -755,7 +801,7 @@ void pipe_stage_fetch()
         return;
 
     /* Allocate an op and send it down the pipeline. */
-    Pipe_Op *op = (Pipe_Op*)malloc(sizeof(Pipe_Op));
+    Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
     memset(op, 0, sizeof(Pipe_Op));
 
     // First sets the reg_srcs all to -1
@@ -763,10 +809,13 @@ void pipe_stage_fetch()
 
     // This should be replaced with interaction wth I-Cache & add the possible stall commands
     // The instruction after this stage is not stalled
-    op->instruction = mem_read_32(pipe.PC);
+    // op->instruction = mem_read_32(pipe.PC);
 
-    // To add
-    // op->instruction = i_cache(pipe.PC,1);
+    //================================================================================================
+    cache_return_data_t i_cache_returned_data = i_cache(pipe.PC, stat_cycles);
+    op->instruction = i_cache_returned_data.value;
+    stat_cycles = i_cache_returned_data.cycle_time;
+    //================================================================================================
 
     op->pc = pipe.PC;
     pipe.decode_op = op;

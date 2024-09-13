@@ -2,14 +2,38 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "(gdb) Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/lab1/sim",
+      "args": ["${workspaceFolder}/lab1/inputs/cache/test1.x"],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          },
+          {
+              "description": "Set Disassembly Flavor to Intel",
+              "text": "-gdb-set disassembly-flavor intel",
+              "ignoreFailures": true
+          }
+      ]
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/sicajc/ca_labs/lab1/src",
-      "program": "/home/sicajc/ca_labs/lab1/src/build/Debug/outDebug",
+      "cwd": "${workspaceFolder}/lab1/",
+      "program": "${workspaceFolder}/lab1/cache_test",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

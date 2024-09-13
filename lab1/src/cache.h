@@ -72,8 +72,13 @@ extern cache_block i_cache_mem[I_CACHE_SETS][I_CACHE_WAYS];
 // This is useful for sharing variables within the system
 extern cache_block d_cache_mem[D_CACHE_SETS][D_CACHE_WAYS];
 
-uint32_t  i_cache(u_int32_t addr,u_int32_t* time); // Returns a value and updates the i cache
-uint32_t  d_cache(bool read,uint32_t data,u_int32_t addr,u_int32_t* time); // Returns a value and updates the d cache
+typedef struct cache_return_data{
+    uint32_t value;
+    uint32_t cycle_time;
+} cache_return_data_t;
+
+cache_return_data_t  i_cache(const u_int32_t addr,const u_int32_t cycle_time); // Returns a value and updates the i cache
+cache_return_data_t  d_cache(const bool read,const uint32_t data,const u_int32_t addr,const u_int32_t time); // Returns a value and updates the d cache
 
 typedef struct cache_info{
     uint32_t tags;
