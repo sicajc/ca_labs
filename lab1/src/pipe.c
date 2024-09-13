@@ -160,7 +160,7 @@ void pipe_stage_mem()
     // Need to add the stall logic here and add the D$ stall cycles, if stall simply returns.
     // if(pipe.d_cache_stall > 0)
     // {
-        // pipe.d_cache_stall--;
+    // pipe.d_cache_stall--;
     // }
 
     /* if there is no instruction in this pipeline stage, we are done */
@@ -175,7 +175,7 @@ void pipe_stage_mem()
     uint32_t val = 0;
     // Changes this to reads the byte from D$
     // if (op->is_mem)
-        val = mem_read_32(op->mem_addr & ~3);
+    val = mem_read_32(op->mem_addr & ~3);
     //===================================================================================================
     // if (op->is_mem)
     // {
@@ -318,7 +318,7 @@ void pipe_stage_mem()
     }
 
     // if(pipe.d_cache_stall > 0)
-        // return;
+    // return;
 
     /* clear stage input and transfer to next stage */
     // Act as the output register
@@ -655,9 +655,6 @@ void pipe_stage_decode()
     if (pipe.decode_op == NULL)
         return;
 
-    if (1)
-        ; // This is a dummy statement to avoid the warning of unused variable
-
     /* grab op and remove from stage input */
     Pipe_Op *op = pipe.decode_op;
     pipe.decode_op = NULL;
@@ -802,9 +799,6 @@ void pipe_stage_decode()
 
 void pipe_stage_fetch()
 {
-    if (pipe.i_cache_stall > 0)
-        pipe.i_cache_stall--;
-
     /* if pipeline is stalled (our output slot is not empty), return */
     if (pipe.decode_op != NULL)
         return;
@@ -819,30 +813,28 @@ void pipe_stage_fetch()
 
     printf("pc_addr: %08x\n", pipe.PC);
 
-    if (pipe.i_cache_stall > 0)
-    {
-        if(RUN_BIT == 0){
-            stat_inst_fetch++;
-            pipe.PC +=4;
-        }
-
-        return;
-    }
-
     /* Allocate an op and send it down the pipeline. */
     Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
     memset(op, 0, sizeof(Pipe_Op));
-    op->instruction = i_cache_returned_data.value;
 
     // First sets the reg_srcs all to -1
     op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
-    // op->instruction = i_cache_returned_data.value;
+    op->instruction = i_cache_returned_data.value;
     op->pc = pipe.PC;
 
-    pipe.decode_op = op;
-
-    /* update PC */
-    pipe.PC += 4;
+    if (pipe.i_cache_stall > 0)
+    {
+        // No propogation
+        pipe.decode_op = NULL;
+        /* PC remains */
+        pipe.PC = pipe.PC;
+        pipe.i_cache_stall--;
+    } else{
+        /* update PC */
+        pipe.PC += 4;
+        // Propogates the instruction to the decode stage
+        pipe.decode_op = op;
+    }
 
     stat_inst_fetch++;
 }
