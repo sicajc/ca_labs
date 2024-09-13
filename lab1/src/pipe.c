@@ -817,7 +817,7 @@ void pipe_stage_fetch()
     pipe.i_cache_stall = i_cache_returned_data.cycle_time;
     //================================================================================================
 
-    // printf("before_pc_addr: %08x\n", pipe.PC);
+    printf("pc_addr: %08x\n", pipe.PC);
 
     if (pipe.i_cache_stall > 0)
     {
@@ -832,7 +832,7 @@ void pipe_stage_fetch()
     /* Allocate an op and send it down the pipeline. */
     Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
     memset(op, 0, sizeof(Pipe_Op));
-    op->instruction = mem_read_32(pipe.PC);
+    op->instruction = i_cache_returned_data.value;
 
     // First sets the reg_srcs all to -1
     op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
@@ -843,8 +843,6 @@ void pipe_stage_fetch()
 
     /* update PC */
     pipe.PC += 4;
-
-    // printf("after_pc_addr: %08x\n", pipe.PC);
 
     stat_inst_fetch++;
 }
