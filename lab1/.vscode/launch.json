@@ -30,7 +30,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/sim",
-      "args": ["${workspaceFolder}/inputs/cache/test1.x"],
+      "args": ["${workspaceFolder}/inputs/cache/test1.x"] ,
       "stopAtEntry": true,
       "cwd": "${workspaceFolder}",
       "environment": [],

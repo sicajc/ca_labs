@@ -2,6 +2,35 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "(UDB) Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/lab1/sim",
+      "args": ["${workspaceFolder}/lab1/inputs/inst/sw.x"],
+      "stopAtEntry": true,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "miDebuggerPath": "udb",
+      "miDebuggerArgs": "",
+      "logging": {
+        "trace": false,
+        "traceResponse": false,
+        "engineLogging": false
+      },
+      "udb": "live",
+      "timezone": "",
+      "udbConfiguration": {}
+    },
+    {
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
