@@ -158,10 +158,13 @@ void pipe_stage_wb()
 void pipe_stage_mem()
 {
     // Need to add the stall logic here and add the D$ stall cycles, if stall simply returns.
+<<<<<<< HEAD
     // if(pipe.d_cache_stall > 0)
     // {
     // pipe.d_cache_stall--;
     // }
+=======
+>>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
 
     /* if there is no instruction in this pipeline stage, we are done */
     // Check if the instruction is the memory related instruction
@@ -174,21 +177,27 @@ void pipe_stage_mem()
 
     uint32_t val = 0;
     // Changes this to reads the byte from D$
+<<<<<<< HEAD
     if (op->is_mem)
         val = mem_read_32(op->mem_addr & ~3);
-    //===================================================================================================
+=======
     // if (op->is_mem)
-    // {
-    //     // Reading from the memory
-    //     bool read_cmd = true;
-    //     uint32_t read_addr = op->mem_addr & ~3;
-    //     cache_return_data_t cache_return_data = d_cache(read_cmd,
-    //                                                     0,
-    //                                                     read_addr,
-    //                                                     pipe.d_cache_stall);
-    //     val = cache_return_data.value;
-    //     pipe.d_cache_stall = cache_return_data.cycle_time;
-    // }
+    //     val = mem_read_32(op->mem_addr & ~3);
+>>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
+    //===================================================================================================
+    if (op->is_mem)
+    {
+        // Reading from the memory
+        bool read_cmd = true;
+        uint32_t read_addr = op->mem_addr & ~3;
+        cache_return_data_t cache_return_data = d_cache(read_cmd,
+                                                        0,
+                                                        read_addr,
+                                                        stat_cycles);
+
+        val = cache_return_data.value;
+        stat_cycles = cache_return_data.cycle_time;
+    }
     //====================================================================================================
 
     // Determines the operations
@@ -317,9 +326,12 @@ void pipe_stage_mem()
         break;
     }
 
+<<<<<<< HEAD
     // if(pipe.d_cache_stall > 0)
     // return;
 
+=======
+>>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
     /* clear stage input and transfer to next stage */
     // Act as the output register
     pipe.mem_op = NULL;
@@ -806,6 +818,7 @@ void pipe_stage_fetch()
     if (pipe.decode_op != NULL)
         return;
 
+<<<<<<< HEAD
     if (RUN_BIT == 0)
     {
         pipe.PC += 4;
@@ -837,12 +850,26 @@ void pipe_stage_fetch()
     memset(op, 0, sizeof(Pipe_Op));
 
     op->instruction = i_cache_returned_data.value;
+=======
+    /* Allocate an op and send it down the pipeline. */
+    Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
+    memset(op, 0, sizeof(Pipe_Op));
+>>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
 
     // First sets the reg_srcs all to -1
     op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
-    // op->instruction = i_cache_returned_data.value;
-    op->pc = pipe.PC;
 
+    // This should be replaced with interaction wth I-Cache & add the possible stall commands
+    // The instruction after this stage is not stalled
+    // op->instruction = mem_read_32(pipe.PC);
+
+    //================================================================================================
+    cache_return_data_t i_cache_returned_data = i_cache(pipe.PC, stat_cycles);
+    op->instruction = i_cache_returned_data.value;
+    stat_cycles = i_cache_returned_data.cycle_time;
+    //================================================================================================
+
+    op->pc = pipe.PC;
     pipe.decode_op = op;
 
     /* update PC */
