@@ -798,43 +798,9 @@ void pipe_stage_fetch()
     if (pipe.decode_op != NULL)
         return;
 
-<<<<<<< HEAD
-    if (RUN_BIT == 0)
-    {
-        pipe.PC += 4;
-        return;
-    }
-
-    if (pipe.i_cache_stall > 0)
-    {
-        pipe.i_cache_stall--;
-        return;
-    }
-
-    // This should be replaced with interaction wth I-Cache & add the possible stall commands
-    // The instruction after this stage is not stalled
-
-    //================================================================================================
-    cache_return_data_t i_cache_returned_data = i_cache(pipe.PC, pipe.i_cache_stall);
-    pipe.i_cache_stall = i_cache_returned_data.cycle_time;
-    //================================================================================================
-
-    // Stalling
-    if (pipe.i_cache_stall > 0)
-    {
-        return;
-    }
-
     /* Allocate an op and send it down the pipeline. */
     Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
     memset(op, 0, sizeof(Pipe_Op));
-
-    op->instruction = i_cache_returned_data.value;
-=======
-    /* Allocate an op and send it down the pipeline. */
-    Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
-    memset(op, 0, sizeof(Pipe_Op));
->>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
 
     // First sets the reg_srcs all to -1
     op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
