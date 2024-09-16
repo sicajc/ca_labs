@@ -158,6 +158,11 @@ void pipe_stage_wb()
 void pipe_stage_mem()
 {
     // Need to add the stall logic here and add the D$ stall cycles, if stall simply returns.
+    if(pipe.d_cache_stall > 0)
+    {
+        pipe.d_cache_stall--;
+        return;
+    }
 
     /* if there is no instruction in this pipeline stage, we are done */
     // Check if the instruction is the memory related instruction
@@ -179,11 +184,15 @@ void pipe_stage_mem()
         cache_return_data_t cache_return_data = d_cache(read_cmd,
                                                         0,
                                                         read_addr,
-                                                        stat_cycles);
+                                                        pipe.d_cache_stall);
 
         val = cache_return_data.value;
-        stat_cycles = cache_return_data.cycle_time;
+        pipe.d_cache_stall = cache_return_data.cycle_time;
     }
+
+    // Pipeline stalls
+    if(pipe.d_cache_stall > 0)
+        return;
     //====================================================================================================
 
     // Determines the operations
@@ -266,9 +275,9 @@ void pipe_stage_mem()
             cache_return_data_t cache_return_data = d_cache(read_cmd,
                                                             val,
                                                             write_addr,
-                                                            stat_cycles);
+                                                            pipe.d_cache_stall);
 
-            stat_cycles = cache_return_data.cycle_time;
+            pipe.d_cache_stall = cache_return_data.cycle_time;
 
             //===================================================================================================
             break;
@@ -293,8 +302,8 @@ void pipe_stage_mem()
             cache_return_data_t cache_return_data = d_cache(read_cmd,
                                                             val,
                                                             write_addr,
-                                                            stat_cycles);
-            stat_cycles = cache_return_data.cycle_time;
+                                                            pipe.d_cache_stall);
+            pipe.d_cache_stall = cache_return_data.cycle_time;
             break;
         }
 
@@ -307,8 +316,8 @@ void pipe_stage_mem()
         cache_return_data_t cache_return_data = d_cache(read_cmd,
                                                         val,
                                                         write_addr,
-                                                        stat_cycles);
-        stat_cycles = cache_return_data.cycle_time;
+                                                        pipe.d_cache_stall);
+        pipe.d_cache_stall = cache_return_data.cycle_time;
         break;
     }
 
@@ -687,6 +696,7 @@ void pipe_stage_decode()
         {
             op->reg_src1 = 2; // v0
             op->reg_src2 = 3; // v1
+            pipe.is_syscall = 1;
         }
         if (funct2 == SUBOP_JR || funct2 == SUBOP_JALR)
         {
@@ -794,26 +804,48 @@ void pipe_stage_decode()
 
 void pipe_stage_fetch()
 {
+    // Once syscall appears, simply stalls the fetch stage pipeline
+    if(pipe.is_syscall == 1)
+    {
+        if(RUN_BIT == 0)
+            pipe.PC+=4;
+
+        return;
+    }
+
+    if(pipe.i_cache_stall > 0)
+    {
+        pipe.i_cache_stall--;
+        return;
+    }
+
     /* if pipeline is stalled (our output slot is not empty), return */
     if (pipe.decode_op != NULL)
         return;
 
-    /* Allocate an op and send it down the pipeline. */
-    Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
-    memset(op, 0, sizeof(Pipe_Op));
-
-    // First sets the reg_srcs all to -1
-    op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
 
     // This should be replaced with interaction wth I-Cache & add the possible stall commands
     // The instruction after this stage is not stalled
     // op->instruction = mem_read_32(pipe.PC);
 
     //================================================================================================
-    cache_return_data_t i_cache_returned_data = i_cache(pipe.PC, stat_cycles);
-    op->instruction = i_cache_returned_data.value;
-    stat_cycles = i_cache_returned_data.cycle_time;
+    cache_return_data_t i_cache_returned_data = i_cache(pipe.PC, pipe.i_cache_stall);
+    pipe.i_cache_stall = i_cache_returned_data.cycle_time;
     //================================================================================================
+
+    // if stall, simply return
+    // Consider a case, the pc address is syscalls, pc+4 is nothing however, it is still considered cache miss.
+    if (pipe.i_cache_stall > 0)
+        return;
+
+    // The instruction after this stage is not stalled
+    /* Allocate an op and send it down the pipeline. */
+    Pipe_Op *op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
+    memset(op, 0, sizeof(Pipe_Op));
+    op->instruction = i_cache_returned_data.value;
+
+    // First sets the reg_srcs all to -1
+    op->reg_src1 = op->reg_src2 = op->reg_dst = -1;
 
     op->pc = pipe.PC;
     pipe.decode_op = op;
