@@ -158,13 +158,6 @@ void pipe_stage_wb()
 void pipe_stage_mem()
 {
     // Need to add the stall logic here and add the D$ stall cycles, if stall simply returns.
-<<<<<<< HEAD
-    // if(pipe.d_cache_stall > 0)
-    // {
-    // pipe.d_cache_stall--;
-    // }
-=======
->>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
 
     /* if there is no instruction in this pipeline stage, we are done */
     // Check if the instruction is the memory related instruction
@@ -177,13 +170,6 @@ void pipe_stage_mem()
 
     uint32_t val = 0;
     // Changes this to reads the byte from D$
-<<<<<<< HEAD
-    if (op->is_mem)
-        val = mem_read_32(op->mem_addr & ~3);
-=======
-    // if (op->is_mem)
-    //     val = mem_read_32(op->mem_addr & ~3);
->>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
     //===================================================================================================
     if (op->is_mem)
     {
@@ -326,12 +312,6 @@ void pipe_stage_mem()
         break;
     }
 
-<<<<<<< HEAD
-    // if(pipe.d_cache_stall > 0)
-    // return;
-
-=======
->>>>>>> 9aab72d6bb62da006a5d8f82feddea496d5912d9
     /* clear stage input and transfer to next stage */
     // Act as the output register
     pipe.mem_op = NULL;
