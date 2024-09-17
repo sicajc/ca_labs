@@ -1,7 +1,7 @@
 SRC = $(wildcard src/*.c src/*h)
 # I want to search for every file that conatains cache
 # and ends with .c
-DEBUG_SRC = $(wildcard debug/*.c)
+DEBUG_SRC = $(wildcard debug/*.cpp debug/*.hpp)
 INPUT ?= $(wildcard inputs/*/*.x)
 
 DEBUG_NAME = cache_test

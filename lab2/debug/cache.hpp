@@ -17,7 +17,7 @@
 #define BLOCK 8
 #define BITS 1
 
-#define MEM_WORD_SIZE 1 << 20
+#define MEM_WORD_SIZE 1 << 14
 #define WORD_SIZE 32 * BITS
 
 #define KILO 1024
@@ -42,17 +42,6 @@
 #define D_CACHE_OFFSET_WIDTH log2(D_CACHE_BLOCK_SIZE)
 #define D_CACHE_WORDS_IN_BLOCK D_CACHE_BLOCK_SIZE / WORD
 #define D_CACHE_SETS D_CACHE_SIZE / (D_CACHE_BLOCK_SIZE * D_CACHE_WAYS)
-
-#define L2_CACHE_SIZE 256 * KILO
-#define L2_CACHE_BLOCK_SIZE 32
-#define L2_CACHE_WAYS 16
-
-#define L2_CACHE_TAG_WIDTH WORD_SIZE - log2(L2_CACHE_SIZE / L2_CACHE_WAYS)
-#define L2_CACHE_INDEX_WIDTH log2((L2_CACHE_SIZE / (L2_CACHE_WAYS * L2_CACHE_BLOCK_SIZE)))
-#define L2_CACHE_OFFSET_WIDTH log2(L2_CACHE_BLOCK_SIZE)
-#define L2_CACHE_WORDS_IN_BLOCK L2_CACHE_BLOCK_SIZE / WORD
-
-#define L2_CACHE_SETS L2_CACHE_SIZE / (L2_CACHE_BLOCK_SIZE * L2_CACHE_WAYS)
 
 // use unsigned int for the bit mask
 #define BIT_MASK(size) ((1U << (unsigned)(size)) - 1)
@@ -96,6 +85,7 @@ typedef struct cache_block
 // memory request
 typedef struct memory_request
 {
+    uint32_t valid = false;
     uint32_t addr = 0;
     uint32_t data = 0;
     uint32_t cycle_time = 0;
@@ -108,7 +98,7 @@ typedef struct mshr_entry
     bool done = false;
     enum cache_status status;
 
-    uint32_t addr = 0;
+    uint32_t block_addr = 0;
 } mshr_entry_t;
 
 // Instantiate i_cache, i_cache is a 4-way associative cache with 64 sets
@@ -117,9 +107,6 @@ extern cache_block i_cache_mem[I_CACHE_SETS][I_CACHE_WAYS];
 // Instantiate d_cache, d_cache is a 8-way associative cache with 256 sets
 //  This is useful for sharing variables within the system
 extern cache_block d_cache_mem[D_CACHE_SETS][D_CACHE_WAYS];
-
-// Using std::array to instantiate l2_cache, l2_cache is a 16-way associative cache with 256 sets
-extern std::array<std::array<cache_block, L2_CACHE_WAYS>, L2_CACHE_SETS> l2_cache_mem;
 
 // mshr
 extern std::array<mshr_entry_t, NO_OF_MSHR_ENTRIES> mshr;
@@ -148,18 +135,29 @@ enum req_type
     WRITE
 };
 
+enum req_cache
+{
+    I_CACHE,
+    D_CACHE
+};
+
 cache_return_data_t i_cache(const u_int32_t addr, const u_int32_t cycle_time);                                 // Returns a value and updates the i cache
 cache_return_data_t d_cache(const bool read, const uint32_t data, const u_int32_t addr, const u_int32_t time); // Returns a value and updates the d cache
 cache_return_data_l2_t l2_cache(const memory_request_t req, const fill_request_t fill_req);
+
 
 typedef struct cache_info
 {
     uint32_t tags;
     uint32_t index;
     uint32_t offset;
+
+    uint32_t block_addr;
+    uint32_t word_addr;
+
     uint32_t tag_bit_shift;
     uint32_t index_bit_shift;
-} cache_info_t;
+} decoded_addr_info_t;
 
 // Initialize the instruction memory
 extern uint32_t inst_mem[MEM_WORD_SIZE];
@@ -170,7 +168,7 @@ extern uint32_t pseudo_data_mem[MEM_WORD_SIZE];
 
 void init_cache(); // Initializes the cache
 
-cache_info_t calculate_cache_info(uint32_t addr, uint32_t word_size, uint32_t cache_size, uint32_t cache_ways, uint32_t cache_block_size);
+decoded_addr_info_t decode_addr(uint32_t addr, uint32_t word_size, uint32_t cache_size, uint32_t cache_ways, uint32_t cache_block_size);
 
 req_type get_req_type(enum cache_status status);
 
