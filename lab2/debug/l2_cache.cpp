@@ -59,13 +59,12 @@ cache_block L1_cache_access_L2_cache(memory_request_t L1_req)
         // stalls the l1 cache request, it waits for the dram fill to returns
 #ifdef TEST_L2_CACHE
         cache_block block = read_block_from_mem(L1_req.req_cache_type, decoded_addr.tags, decoded_addr.index);
-        dram_writes_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset, block);
+        dram_writes_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset,L1_req.req_cache_type,block);
+        invalidate_mshr_entry(decoded_addr.block_addr);
 #elif  FULL_INTEGRATION
         if(DRAM_fill_notification(dram_req)) dram_writes_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset, dram_req.data);
 #endif
-
-        if(L1_req.req_op_type == READ)
-            return read_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset,L1_req.req_cache_type);
+        return block;
     }
 }
 
@@ -81,7 +80,7 @@ bool DRAM_fill_notification(fill_request_t dram_fill_req)
     invalidate_mshr_entry(decoded_addr.block_addr);
 
     // fill L2 cache
-    dram_writes_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset, dram_fill_req.block);
+    dram_writes_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset,dram_fill_req.req_cache_type,dram_fill_req.block);
 
     // send fill notification to L1 cache
     return true;

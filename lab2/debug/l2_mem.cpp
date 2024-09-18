@@ -81,8 +81,10 @@ void l1_write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint3
 }
 
 // dram writes l2 cache mem
-void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const cache_block _block)
+void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset,const req_cache _req_cache,const cache_block _block)
 {
+    // _block's cache type is not the same as the cache type in the l2 cache
+
     // First search for in valid block in set
     // If found, write to that block
     // else find the least recently used block and write to that block
@@ -98,14 +100,16 @@ void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const ui
         block->key.valid = 1;
         block->value = _block.value;
         block->key.dirty = 0;
+        block->key.req_cache_type = _req_cache;
     }
-    else
+    else // No invalid block found, must replace the least recently used block
     {
         uint32_t lru_way = find_ways_of_least_recently_used_block(index);
         l2_cache_mem[index][lru_way].key.tag = tag;
         l2_cache_mem[index][lru_way].key.valid = 1;
         l2_cache_mem[index][lru_way].value = _block.value;
         l2_cache_mem[index][lru_way].key.dirty = 0;
+        l2_cache_mem[index][lru_way].key.req_cache_type = _req_cache;
     }
 }
 
@@ -119,15 +123,16 @@ cache_block read_l2_cache_mem(const uint32_t tag, const uint32_t index, const ui
                                   return block.key.tag == tag && block.key.valid == 1 && block.key.req_cache_type == _req_cache;
                               });
 
-    update_l2_cache_lru(tag, index, _req_cache);
 
     cache_block _cache_block;
 
     _cache_block.value = block->value;
 
-    _cache_block.key.dirty = 0;
-    _cache_block.key.valid = 1;
+    _cache_block.key.dirty   = block->key.dirty;
+    _cache_block.key.valid   = block->key.valid;
     _cache_block.key.lru_cnt = L2_CACHE_WAYS-1;
+
+    update_l2_cache_lru(tag, index, _req_cache);
 
     // Return the data
     return _cache_block;

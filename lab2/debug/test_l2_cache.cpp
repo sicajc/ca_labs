@@ -79,26 +79,30 @@ TEST_F(cache_test, L2_cache_read_test)
     for (int i = 0; i < NUM_OF_TESTS; i++)
     {
         // Generate a random address
-        uint32_t addr = rand() % MEM_WORD_SIZE;
+        uint32_t addr = uint32_t(rand()) % uint32_t(MEM_WORD_SIZE);
 
-        //decode addr
+        // decode addr
         decoded_addr_info_t decoded_addr = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
 
         // req_type
-        req_cache req_type =  addr % 2 == 0 ? D_CACHE : I_CACHE;
+        req_cache req_type = addr % 2 == 0 ? D_CACHE : I_CACHE;
 
         // Read block from the memory
-        cache_block block = read_block_from_mem(req_type,decoded_addr.tags, decoded_addr.index);
+        cache_block block = read_block_from_mem(req_type, decoded_addr.tags, decoded_addr.index);
+
+        memory_request_t req;
+        req.valid = true;
+        req.cycle_time = 0;
+        req.addr = addr;
+        req.req_cache_type = req_type;
+        req.req_op_type = READ;
 
         // Read the block from l2_cache
-        cache_block read_block = read_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset,req_type);
+        cache_block read_block = L1_cache_access_L2_cache(req);
 
-        //assert
-        if(~(block == read_block))
-        {
-            // TERMINATES THE TEST
-            ASSERT_TRUE(false);
-        }
+        bool equal = block == read_block;
+        // TERMINATES THE TEST
+        ASSERT_TRUE(equal) << "Number of tests: " << i << " Address: " << addr;
     }
 }
 
@@ -112,7 +116,7 @@ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
     // filter
-    // testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_test";
+    testing::GTEST_FLAG(filter) = "cache_test.L2_cache_read_test";
 
     return RUN_ALL_TESTS();
 }

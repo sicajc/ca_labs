@@ -55,7 +55,7 @@ hit_or_miss cache_hit_or_miss(const uint32_t tag, const uint32_t index,const req
 // write l2 cache mem
 void l1_write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const cache_block block,const req_cache _req_cache);
 
-void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const cache_block block);
+void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset,const req_cache _req_cache,const cache_block block);
 
 // read l2 cache block
 cache_block read_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset,const req_cache _req_cache);

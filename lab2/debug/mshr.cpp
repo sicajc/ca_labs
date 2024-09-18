@@ -16,9 +16,9 @@ void init_mshr()
 void add_request_to_mshr(uint32_t block_addr, req_cache _req_cache)
 {
     auto entry = std::find_if(mshr.begin(), mshr.end(),
-                              [block_addr](const mshr_entry_t &entry)
+                              [](const mshr_entry_t &entry)
                               {
-                                  return entry.block_addr == block_addr;
+                                  return entry.valid == false;
                               });
 
     entry->block_addr = block_addr;
