@@ -67,6 +67,10 @@ uint32_t read_mem(const req_cache _req_cache,const uint32_t addr);
 
 cache_block read_block_from_mem(const req_cache _req_cache, const uint32_t tag, const uint32_t index);
 
+void write_mem(const req_cache _req_cache, const uint32_t addr, const uint32_t data);
+
+void write_data_block_to_mem(const req_cache _req_cache, const uint32_t tag, const uint32_t index, const cache_block block);
+
 uint32_t find_ways_of_least_recently_used_block(const uint32_t index);
 
 // instantiate memory

@@ -105,6 +105,16 @@ void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const ui
     else // No invalid block found, must replace the least recently used block
     {
         uint32_t lru_way = find_ways_of_least_recently_used_block(index);
+        // Must write back to the memory if the block is dirty, here it is writing back to dram
+        if (l2_cache_mem[index][lru_way].key.dirty == 1)
+        {
+            cache_block _block;
+            _block.value = l2_cache_mem[index][lru_way].value;
+
+            // Need to write block back to dram
+            write_data_block_to_mem(l2_cache_mem[index][lru_way].key.req_cache_type, l2_cache_mem[index][lru_way].key.tag, index, _block);
+        }
+
         l2_cache_mem[index][lru_way].key.tag = tag;
         l2_cache_mem[index][lru_way].key.valid = 1;
         l2_cache_mem[index][lru_way].value = _block.value;
@@ -175,4 +185,36 @@ cache_block read_block_from_mem(const req_cache _req_cache,
     }
 
     return block;
+}
+
+// writes a word to memory
+void write_mem(const req_cache _req_cache, const uint32_t addr, const uint32_t data)
+{
+    // Given the requested cache type, address, and data, write to different memory
+    // Returns the written data
+    if (_req_cache == D_CACHE)
+    {
+        test_data_mem[addr / WORD] = data;
+    }
+    else
+    {
+        test_inst_mem[addr / WORD] = data;
+    }
+}
+
+//write block to memory
+void write_data_block_to_mem(const req_cache _req_cache, const uint32_t tag, const uint32_t index, const cache_block _block)
+{
+    uint32_t tag_bit_shift = (uint32_t)(log2(L2_CACHE_SIZE / L2_CACHE_WAYS));
+    uint32_t index_bit_shift = log2(L2_CACHE_BLOCK_SIZE);
+
+    // Rebuild the address from the tag and index
+    uint32_t block_addr_start = (tag << tag_bit_shift) | (index << index_bit_shift);
+
+    // Write the whole block of data to the specified memory type
+    for (int i = 0; i < L2_CACHE_WORDS_IN_BLOCK; i++)
+    {
+        uint32_t write_addr = block_addr_start + uint32_t((i * WORD));
+        write_mem(_req_cache, write_addr, _block.value.value[i]);
+    }
 }
