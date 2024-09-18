@@ -9,11 +9,11 @@ void init_mshr()
         entry.valid = false;
         entry.done = false;
         entry.block_addr = 0;
-        entry.status = L1D_RD;
+        entry.req_cache_type = I_CACHE;
     }
 }
 
-void add_request_to_mshr(uint32_t block_addr, enum cache_status status)
+void add_request_to_mshr(uint32_t block_addr, req_cache _req_cache)
 {
     auto entry = std::find_if(mshr.begin(), mshr.end(),
                               [block_addr](const mshr_entry_t &entry)
@@ -22,7 +22,7 @@ void add_request_to_mshr(uint32_t block_addr, enum cache_status status)
                               });
 
     entry->block_addr = block_addr;
-    entry->status = status;
+    entry->req_cache_type = _req_cache;
     entry->valid = true;
 }
 
@@ -35,12 +35,12 @@ bool is_mshr_full()
                        });
 }
 
-bool is_request_in_mshr(uint32_t block_addr)
+bool is_request_in_mshr(uint32_t block_addr,req_cache _req_cache)
 {
     return std::any_of(mshr.begin(), mshr.end(),
-                       [block_addr](const mshr_entry_t &entry)
+                       [block_addr,_req_cache](const mshr_entry_t &entry)
                        {
-                           return entry.block_addr == block_addr;
+                           return entry.block_addr == block_addr && entry.valid == true && entry.req_cache_type == _req_cache;
                        });
 }
 

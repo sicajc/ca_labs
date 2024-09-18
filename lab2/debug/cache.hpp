@@ -63,15 +63,15 @@ enum cache_status
 // Define d cache key, key = [dirty,valid,lru_cnt,tag] as struct
 typedef struct cache_key
 {
-    int dirty;
-    int valid;
-    int lru_cnt;
-    u_int32_t tag;
+    int dirty = 0;
+    int valid = 0;
+    int lru_cnt = 7;
+    u_int32_t tag = 0;
 } cache_key_t;
 
 typedef struct cache_data_block
 {
-    u_int32_t value[D_CACHE_WORDS_IN_BLOCK];
+    u_int32_t value[D_CACHE_WORDS_IN_BLOCK] = {0};
 } cache_data_block_t;
 
 // Define cache block, as key and value array
@@ -80,23 +80,82 @@ typedef struct cache_block
     cache_key_t key;
     // Each cache block is 32 bytes, number of sets
     cache_data_block_t value;
+
+    // Initialize the cache block
+    cache_block()
+    {
+        key.dirty = 0;
+        key.valid = 0;
+        key.lru_cnt = 7;
+        key.tag = 0;
+        for (int i = 0; i < D_CACHE_WORDS_IN_BLOCK; i++)
+        {
+            value.value[i] = 0;
+        }
+    }
+
+    // operator overloading, assign new block
+    cache_block &operator=(const cache_block &block)
+    {
+        key = block.key;
+        value = block.value;
+        return *this;
+    }
+
+    // operator overloading, compare two blocks, also their values
+    bool operator==(const cache_block &block)
+    {
+        if (key.dirty != block.key.dirty)
+            return false;
+        if (key.valid != block.key.valid)
+            return false;
+        if (key.lru_cnt != block.key.lru_cnt)
+            return false;
+        if (key.tag != block.key.tag)
+            return false;
+        for (int i = 0; i < D_CACHE_WORDS_IN_BLOCK; i++)
+        {
+            if (value.value[i] != block.value.value[i])
+                return false;
+        }
+        return true;
+    }
 } cache_block;
+
+enum hit_or_miss
+{
+    HIT,
+    MISS
+};
+
+enum req_op_type
+{
+    READ,
+    WRITE
+};
+
+enum req_cache
+{
+    I_CACHE,
+    D_CACHE
+};
 
 // memory request
 typedef struct memory_request
 {
     uint32_t valid = false;
     uint32_t addr = 0;
-    uint32_t data = 0;
+    cache_block block;
     uint32_t cycle_time = 0;
-    enum cache_status status;
+    enum req_op_type  req_op_type;
+    enum req_cache    req_cache_type;
 } memory_request_t, fill_request_t;
 
 typedef struct mshr_entry
 {
     bool valid = false;
     bool done = false;
-    enum cache_status status;
+    enum req_cache req_cache_type;
 
     uint32_t block_addr = 0;
 } mshr_entry_t;
@@ -122,24 +181,6 @@ typedef struct cache_return_data_l2
     fill_request_t fill_l1_req;
     memory_request_t access_to_dram_req;
 } cache_return_data_l2_t;
-
-enum hit_or_miss
-{
-    HIT,
-    MISS
-};
-
-enum req_type
-{
-    READ,
-    WRITE
-};
-
-enum req_cache
-{
-    I_CACHE,
-    D_CACHE
-};
 
 cache_return_data_t i_cache(const u_int32_t addr, const u_int32_t cycle_time);                                 // Returns a value and updates the i cache
 cache_return_data_t d_cache(const bool read, const uint32_t data, const u_int32_t addr, const u_int32_t time); // Returns a value and updates the d cache
@@ -170,6 +211,6 @@ void init_cache(); // Initializes the cache
 
 decoded_addr_info_t decode_addr(uint32_t addr, uint32_t word_size, uint32_t cache_size, uint32_t cache_ways, uint32_t cache_block_size);
 
-req_type get_req_type(enum cache_status status);
+req_op_type get_req_type(enum cache_status status);
 
 #endif

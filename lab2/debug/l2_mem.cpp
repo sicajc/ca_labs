@@ -1,7 +1,7 @@
 #include "l2_mem.hpp"
 
 // l2 cache mem
-std::array<std::array<cache_block, L2_CACHE_WAYS>, L2_CACHE_SETS> l2_cache_mem;
+std::array<std::array<l2_cache_block_t, L2_CACHE_WAYS>, L2_CACHE_SETS> l2_cache_mem;
 
 // initialize l2 cache
 void init_l2_cache()
@@ -19,14 +19,26 @@ void init_l2_cache()
     }
 }
 
+// update l2 cache lru
+void update_l2_cache_lru(const uint32_t tag, const uint32_t index, const req_cache _req_cache)
+{
+    // Given tag and index, set the given block's lru_cnt to highest priority,
+    // decrement all other blocks' lru_cnt
+    for (auto &block : l2_cache_mem[index])
+        if (block.key.tag != tag && block.key.req_cache_type != _req_cache && block.key.valid == 1 && block.key.lru_cnt > 0)
+            block.key.lru_cnt--;
+        else
+            block.key.lru_cnt = L2_CACHE_WAYS - 1;
+}
+
 // hit or miss
-hit_or_miss cache_hit_or_miss(const uint32_t tag, const uint32_t index)
+hit_or_miss cache_hit_or_miss(const uint32_t tag, const uint32_t index, const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
     bool is_hit = std::any_of(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
-                              [tag](const cache_block &block)
+                              [tag, _req_cache](const l2_cache_block_t &block)
                               {
-                                  return block.key.tag == tag && block.key.valid == 1;
+                                  return block.key.tag == tag && block.key.valid == 1 && block.key.req_cache_type == _req_cache;
                               });
 
     return is_hit ? HIT : MISS;
@@ -50,49 +62,75 @@ uint32_t find_ways_of_least_recently_used_block(const uint32_t index)
     return lru_way;
 }
 
-// write to l2 cache
-void write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const uint32_t data)
+// L1 write to l2 cache
+void l1_write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const cache_block _block, const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
     auto block = std::find_if(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
-                              [tag](const cache_block &block)
+                              [tag, _req_cache](const l2_cache_block_t &block)
                               {
-                                  return block.key.tag == tag && block.key.valid == 1;
+                                  return block.key.tag == tag && block.key.valid == 1 && block.key.req_cache_type == _req_cache;
                               });
 
     // Write the data to the block
-    block->value.value[offset] = data;
-    block->key.dirty = 1;
+    block->value = _block.value;
 
-    update_l2_cache_lru(tag, index);
+    block->key.dirty = 1;
+    // Update the lru
+    update_l2_cache_lru(tag, index, _req_cache);
+}
+
+// dram writes l2 cache mem
+void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const cache_block _block)
+{
+    // First search for in valid block in set
+    // If found, write to that block
+    // else find the least recently used block and write to that block
+    auto block = std::find_if(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
+                              [tag](const l2_cache_block_t &block)
+                              {
+                                  return block.key.valid == 0;
+                              });
+
+    if (block != l2_cache_mem[index].end())
+    {
+        block->key.tag = tag;
+        block->key.valid = 1;
+        block->value = _block.value;
+        block->key.dirty = 0;
+    }
+    else
+    {
+        uint32_t lru_way = find_ways_of_least_recently_used_block(index);
+        l2_cache_mem[index][lru_way].key.tag = tag;
+        l2_cache_mem[index][lru_way].key.valid = 1;
+        l2_cache_mem[index][lru_way].value = _block.value;
+        l2_cache_mem[index][lru_way].key.dirty = 0;
+    }
 }
 
 // read from l2 cache
-uint32_t read_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset)
+cache_block read_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
     auto block = std::find_if(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
-                              [tag](const cache_block &block)
+                              [tag, _req_cache](const l2_cache_block_t &block)
                               {
-                                  return block.key.tag == tag && block.key.valid == 1;
+                                  return block.key.tag == tag && block.key.valid == 1 && block.key.req_cache_type == _req_cache;
                               });
 
-    update_l2_cache_lru(tag, index);
+    update_l2_cache_lru(tag, index, _req_cache);
+
+    cache_block _cache_block;
+
+    _cache_block.value = block->value;
+
+    _cache_block.key.dirty = 0;
+    _cache_block.key.valid = 1;
+    _cache_block.key.lru_cnt = L2_CACHE_WAYS-1;
 
     // Return the data
-    return block->value.value[offset];
-}
-
-// update l2 cache lru
-void update_l2_cache_lru(const uint32_t tag, const uint32_t index)
-{
-    // Given tag and index, set the given block's lru_cnt to highest priority,
-    // decrement all other blocks' lru_cnt
-    for (auto &block : l2_cache_mem[index])
-        if (block.key.tag != tag && block.key.valid == 1 && block.key.lru_cnt > 0)
-            block.key.lru_cnt--;
-        else
-            block.key.lru_cnt = L2_CACHE_WAYS - 1;
+    return _cache_block;
 }
 
 // reads a word from memory
@@ -104,13 +142,17 @@ uint32_t read_mem(const req_cache _req_cache, const uint32_t addr)
     return word;
 }
 
-// read a block from memory
+// read a block from memory, should only read the block from memory
 cache_block read_block_from_mem(const req_cache _req_cache,
-                                const cache_block selected_block,
                                 const uint32_t tag,
                                 const uint32_t index)
 {
-    cache_block block = selected_block;
+    cache_block block;
+
+    block.key.dirty = 0;
+    block.key.valid = 1;
+    block.key.lru_cnt = L2_CACHE_WAYS - 1;
+    block.key.tag = tag;
 
     uint32_t tag_bit_shift = (uint32_t)(log2(L2_CACHE_SIZE / L2_CACHE_WAYS));
     uint32_t index_bit_shift = log2(L2_CACHE_BLOCK_SIZE);

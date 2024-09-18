@@ -16,11 +16,13 @@ struct cache_test : testing::Test
 
     void SetUp()
     {
+        int SEED = 347;
+
         // Initialize the cache
         init_l2_cache();
 
         // Seed the random number generator
-        srand(471);
+        srand(SEED);
 
         // randomy generate the init_mem
         for (int i = 0; i < MEM_WORD_SIZE; i++)
@@ -116,30 +118,52 @@ TEST_F(cache_test, L2_cache_read_test)
     // randomly set values of l2 cache
     // read the values from the l2 cache to see if the same
 
+    // queue for addr
+    std::queue<uint32_t> addr_queue;
+    std::queue<uint32_t> data_queue;
+
     for (int i = 0; i < NUM_OF_TESTS; i++)
     {
         // Generates a random address
         uint32_t addr = rand() % uint32_t(MEM_WORD_SIZE);
+        uint32_t ways = rand() % L2_CACHE_WAYS;
+
+        // put addr to the queue
+        addr_queue.push(addr);
 
         decoded_addr_info_t cache_info = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
 
         // random block
-        cache_block block;
+        l2_cache_block_t block;
 
         // Writes the block to the cache
         block.key.tag = cache_info.tags;
         block.key.valid = 1;
         block.key.dirty = 0;
         block.key.lru_cnt = 0;
+        block.key.req_cache_type = D_CACHE;
 
         // Replace the block of l2 cache with the block
-        l2_cache_mem[cache_info.index][0] = block;
+        if(l2_cache_mem[cache_info.index][ways].key.valid == 0 )
+        {
+            l2_cache_mem[cache_info.index][ways] = block;
+        }
+    }
+
+    // Testing
+    for(int i = 0; i < NUM_OF_TESTS; i++)
+    {
+        // Get the address from the queue
+        uint32_t addr = addr_queue.front();
+        addr_queue.pop();
+
+        decoded_addr_info_t cache_info = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
 
         // Reads the data from the l2 cache
-        uint32_t read_data = read_l2_cache_mem(cache_info.tags, cache_info.index, cache_info.offset);
+        uint32_t read_data = read_l2_cache_mem(cache_info.tags, cache_info.index, cache_info.offset, D_CACHE);
 
         // Check if the data read is the same as the data written
-        ASSERT_EQ(read_data, block.value.value[cache_info.offset]);
+        ASSERT_EQ(read_data, l2_cache_mem[cache_info.index][cache_info.offset].value.value[cache_info.offset]) << "Number of test: " << i << " Address: " << addr;
     }
 }
 
@@ -176,7 +200,7 @@ TEST_F(cache_test, L2_cache_write_test)
             block.key.valid = 1;
         }
 
-        write_l2_cache_mem(cache_info.tags, cache_info.index, cache_info.offset, data);
+        l1_write_l2_cache_mem(cache_info.tags, cache_info.index, cache_info.offset, data, D_CACHE);
     }
 
     // Testing
@@ -190,7 +214,7 @@ TEST_F(cache_test, L2_cache_write_test)
 
         uint32_t golden_data = test_data_mem[addr / WORD];
 
-        uint32_t out_data =  read_l2_cache_mem(cache_info.tags, cache_info.index, cache_info.offset);
+        uint32_t out_data = read_l2_cache_mem(cache_info.tags, cache_info.index, cache_info.offset, D_CACHE);
 
         // Check if the data read is the same as the data written
         ASSERT_EQ(out_data, golden_data) << "Number of test: " << i << " Address: " << addr << " Data: " << golden_data;
@@ -203,7 +227,7 @@ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
     // filter
-    testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_test";
+    // testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_test";
 
     return RUN_ALL_TESTS();
 }
