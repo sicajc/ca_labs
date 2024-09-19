@@ -6,6 +6,8 @@
 #include <assert.h>
 #include "cache.hpp"
 
+#define RUN_WRITE_TEST
+
 #define L2_CACHE_SIZE 256 * KILO
 #define L2_CACHE_BLOCK_SIZE 32
 #define L2_CACHE_WAYS 16

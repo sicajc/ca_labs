@@ -207,7 +207,11 @@ void write_mem(const req_cache _req_cache, const uint32_t addr, const uint32_t d
     // Returns the written data
     if (_req_cache == D_CACHE)
     {
+#ifdef RUN_WRITE_TEST
+        test_pseudo_data_mem[addr / WORD] = data;
+#else
         test_data_mem[addr / WORD] = data;
+#endif
     }
     else
     {

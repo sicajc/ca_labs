@@ -107,11 +107,12 @@ TEST_F(cache_test, L2_cache_read_test)
 }
 
 // Test if writing works
-// 1. Write to the l2 cache with the same addr
+// 1. Write to the l2 cache with the same addr, L1 transfer the whole block and replace the whole block of the L2 $
 TEST_F(cache_test, L2_cache_write_test)
 {
     // Testing strategy: Writing to the same addr location
-    uint32_t addr = uint32_t(rand()) % uint32_t(MEM_WORD_SIZE);
+    // Expects the final value of pseudo data mem to be the same as data mem
+    uint32_t addr = 0;
     for (int i = 0; i < NUM_OF_TESTS; i++)
     {
         // randomly generate a block
@@ -134,6 +135,7 @@ TEST_F(cache_test, L2_cache_write_test)
         req.valid = true;
         req.cycle_time = 0;
         req.addr = addr;
+        req.block = block;
         req.req_cache_type = req_type;
         req.req_op_type = WRITE;
 
