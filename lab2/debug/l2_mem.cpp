@@ -72,16 +72,24 @@ void l1_write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint3
                                   return block.key.tag == tag && block.key.valid == 1 && block.key.req_cache_type == _req_cache;
                               });
 
-    // Write the data to the block
-    block->value = _block.value;
+    if (block == l2_cache_mem[index].end())
+    {
+        std::cerr << "Block not found in L2 cache" << std::endl;
+        assert(false);
+    }
+    else
+    {
+        // Write the data to the block
+        block->value = _block.value;
 
-    block->key.dirty = 1;
-    // Update the lru
-    update_l2_cache_lru(tag, index, _req_cache);
+        block->key.dirty = 1;
+        // Update the lru
+        update_l2_cache_lru(tag, index, _req_cache);
+    }
 }
 
 // dram writes l2 cache mem
-void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset,const req_cache _req_cache,const cache_block _block)
+void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const req_cache _req_cache, const cache_block _block)
 {
     // _block's cache type is not the same as the cache type in the l2 cache
 
@@ -123,7 +131,7 @@ void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const ui
     }
 }
 
-// read from l2 cache
+// read from l2 cache after a hit
 cache_block read_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
@@ -133,19 +141,24 @@ cache_block read_l2_cache_mem(const uint32_t tag, const uint32_t index, const ui
                                   return block.key.tag == tag && block.key.valid == 1 && block.key.req_cache_type == _req_cache;
                               });
 
+    if (block == l2_cache_mem[index].end())
+    {
+        std::cerr << "Block not found in L2 cache" << std::endl;
+        assert(false);
+    }
+    else
+    {
+        cache_block _cache_block;
 
-    cache_block _cache_block;
+        _cache_block.value = block->value;
 
-    _cache_block.value = block->value;
-
-    _cache_block.key.dirty   = block->key.dirty;
-    _cache_block.key.valid   = block->key.valid;
-    _cache_block.key.lru_cnt = L2_CACHE_WAYS-1;
-
-    update_l2_cache_lru(tag, index, _req_cache);
-
-    // Return the data
-    return _cache_block;
+        _cache_block.key.dirty = block->key.dirty;
+        _cache_block.key.valid = block->key.valid;
+        _cache_block.key.lru_cnt = L2_CACHE_WAYS - 1;
+        update_l2_cache_lru(tag, index, _req_cache);
+        // Return the data
+        return _cache_block;
+    }
 }
 
 // reads a word from memory
@@ -202,7 +215,7 @@ void write_mem(const req_cache _req_cache, const uint32_t addr, const uint32_t d
     }
 }
 
-//write block to memory
+// write block to memory
 void write_data_block_to_mem(const req_cache _req_cache, const uint32_t tag, const uint32_t index, const cache_block _block)
 {
     uint32_t tag_bit_shift = (uint32_t)(log2(L2_CACHE_SIZE / L2_CACHE_WAYS));

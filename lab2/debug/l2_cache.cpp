@@ -31,6 +31,7 @@ cache_block L1_cache_access_L2_cache(memory_request_t L1_req)
         if (L1_req.req_op_type == WRITE)
         {
             l1_write_l2_cache_mem(decoded_addr.tags, decoded_addr.index, decoded_addr.offset, L1_req.block,L1_req.req_cache_type);
+            return block_temp;
         }
         else
         {

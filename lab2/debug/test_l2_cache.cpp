@@ -107,6 +107,124 @@ TEST_F(cache_test, L2_cache_read_test)
 }
 
 // Test if writing works
+// 1. Write to the l2 cache with the same addr
+TEST_F(cache_test, L2_cache_write_test)
+{
+    // Testing strategy: Writing to the same addr location
+    uint32_t addr = uint32_t(rand()) % uint32_t(MEM_WORD_SIZE);
+    for (int i = 0; i < NUM_OF_TESTS; i++)
+    {
+        // randomly generate a block
+        cache_block block;
+        for (int i = 0; i < L2_CACHE_WORDS_IN_BLOCK; i++)
+        {
+            block.value.value[i] = rand() % 1024;
+        }
+
+        // decode addr
+        decoded_addr_info_t decoded_addr = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
+
+        // req_type
+        req_cache req_type = rand()%2 ? D_CACHE : I_CACHE;
+
+        // Read block from the memory
+        write_data_block_to_mem(req_type, decoded_addr.tags, decoded_addr.index, block);
+
+        memory_request_t req;
+        req.valid = true;
+        req.cycle_time = 0;
+        req.addr = addr;
+        req.req_cache_type = req_type;
+        req.req_op_type = WRITE;
+
+        // Read the block from l2_cache
+        cache_block write_block = L1_cache_access_L2_cache(req);
+    }
+
+    // Traverse all set of the cache, get the index
+    // then traverse all the ways of the cache get the block
+    // check if dirty, if dirty writes the block back to the memory
+    for (int i = 0; i < L2_CACHE_SETS; i++)
+    {
+        for (int j = 0; j < L2_CACHE_WAYS; j++)
+        {
+            if (l2_cache_mem[i][j].key.dirty == 1)
+            {
+                cache_block _block;
+                _block.value = l2_cache_mem[i][j].value;
+
+                // Need to write block back to dram
+                write_data_block_to_mem(l2_cache_mem[i][j].key.req_cache_type, l2_cache_mem[i][j].key.tag, i, _block);
+            }
+        }
+    }
+
+    // Compare the test_data_mem and test_pseudo_data_mem
+    for (int i = 0; i < MEM_WORD_SIZE; i++)
+    {
+        ASSERT_EQ(test_data_mem[i], test_pseudo_data_mem[i]);
+    }
+}
+//2 Keep writing to the same block
+TEST_F(cache_test, L2_cache_write_same_block_test)
+{
+    // Testing strategy: Writing to the same addr location
+    uint32_t addr = 0;
+    for (int i = 0; i < NUM_OF_TESTS; i++)
+    {
+        // randomly generate a block
+        cache_block block;
+        for (int i = 0; i < L2_CACHE_WORDS_IN_BLOCK; i++)
+        {
+            block.value.value[i] = rand() % 1024;
+        }
+
+        // decode addr
+        decoded_addr_info_t decoded_addr = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
+
+        // req_type
+        req_cache req_type = rand()%2 ? D_CACHE : I_CACHE;
+
+        decoded_addr.index = 0;
+
+        // Read block from the memory
+        write_data_block_to_mem(req_type, decoded_addr.tags, decoded_addr.index, block);
+
+        memory_request_t req;
+        req.valid = true;
+        req.cycle_time = 0;
+        req.addr = addr;
+        req.req_cache_type = req_type;
+        req.req_op_type = WRITE;
+
+        // Read the block from l2_cache
+        cache_block write_block = L1_cache_access_L2_cache(req);
+    }
+
+    // Traverse all set of the cache, get the index
+    // then traverse all the ways of the cache get the block
+    // check if dirty, if dirty writes the block back to the memory
+    for (int i = 0; i < L2_CACHE_SETS; i++)
+    {
+        for (int j = 0; j < L2_CACHE_WAYS; j++)
+        {
+            if (l2_cache_mem[i][j].key.dirty == 1)
+            {
+                cache_block _block;
+                _block.value = l2_cache_mem[i][j].value;
+
+                // Need to write block back to dram
+                write_data_block_to_mem(l2_cache_mem[i][j].key.req_cache_type, l2_cache_mem[i][j].key.tag, i, _block);
+            }
+        }
+    }
+
+    // Compare the test_data_mem and test_pseudo_data_mem
+    for (int i = 0; i < MEM_WORD_SIZE; i++)
+    {
+        ASSERT_EQ(test_data_mem[i], test_pseudo_data_mem[i]);
+    }
+}
 
 // Test the mshr entry and its behaviour
 
@@ -116,7 +234,7 @@ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
     // filter
-    testing::GTEST_FLAG(filter) = "cache_test.L2_cache_read_test";
+    testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_test";
 
     return RUN_ALL_TESTS();
 }
