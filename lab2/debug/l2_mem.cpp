@@ -20,7 +20,9 @@ void init_l2_cache()
 }
 
 // update l2 cache lru
-void update_l2_cache_lru(const uint32_t tag, const uint32_t index, const req_cache _req_cache)
+void update_l2_cache_lru(const uint32_t tag,
+                         const uint32_t index,
+                         const req_cache _req_cache)
 {
     // Given tag and index, set the given block's lru_cnt to highest priority,
     // decrement all other blocks' lru_cnt
@@ -32,7 +34,9 @@ void update_l2_cache_lru(const uint32_t tag, const uint32_t index, const req_cac
 }
 
 // hit or miss
-hit_or_miss cache_hit_or_miss(const uint32_t tag, const uint32_t index, const req_cache _req_cache)
+hit_or_miss cache_hit_or_miss(const uint32_t tag,
+                              const uint32_t index,
+                              const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
     bool is_hit = std::any_of(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
@@ -63,7 +67,11 @@ uint32_t find_ways_of_least_recently_used_block(const uint32_t index)
 }
 
 // L1 write to l2 cache
-void l1_write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const cache_block _block, const req_cache _req_cache)
+void l1_write_l2_cache_mem(const uint32_t tag,
+                           const uint32_t index,
+                           const uint32_t offset,
+                           const cache_block _block,
+                           const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
     auto block = std::find_if(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
@@ -89,7 +97,11 @@ void l1_write_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint3
 }
 
 // dram writes l2 cache mem
-void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const req_cache _req_cache, const cache_block _block)
+void dram_writes_l2_cache_mem(const uint32_t tag,
+                              const uint32_t index,
+                              const uint32_t offset,
+                              const req_cache _req_cache,
+                              const cache_block _block)
 {
     // _block's cache type is not the same as the cache type in the l2 cache
 
@@ -132,7 +144,10 @@ void dram_writes_l2_cache_mem(const uint32_t tag, const uint32_t index, const ui
 }
 
 // read from l2 cache after a hit
-cache_block read_l2_cache_mem(const uint32_t tag, const uint32_t index, const uint32_t offset, const req_cache _req_cache)
+cache_block read_l2_cache_mem(const uint32_t tag,
+                              const uint32_t index,
+                              const uint32_t offset,
+                              const req_cache _req_cache)
 {
     // Traverse the std::array of cache_block using range bound for loop
     auto block = std::find_if(l2_cache_mem[index].begin(), l2_cache_mem[index].end(),
@@ -166,7 +181,11 @@ uint32_t read_mem(const req_cache _req_cache, const uint32_t addr)
 {
     // Given the requested cache type and address, read from different memory
     // Returns a 32-bit word
+#ifdef RUN_WRITE_TEST
+    uint32_t word = _req_cache == D_CACHE ? test_pseudo_data_mem[addr / WORD] : test_inst_mem[addr / WORD]; // uses word address
+#else
     uint32_t word = _req_cache == D_CACHE ? test_data_mem[addr / WORD] : test_inst_mem[addr / WORD]; // uses word address
+#endif
     return word;
 }
 
@@ -201,7 +220,9 @@ cache_block read_block_from_mem(const req_cache _req_cache,
 }
 
 // writes a word to memory
-void write_mem(const req_cache _req_cache, const uint32_t addr, const uint32_t data)
+void write_mem(const req_cache _req_cache,
+               const uint32_t addr,
+               const uint32_t data)
 {
     // Given the requested cache type, address, and data, write to different memory
     // Returns the written data

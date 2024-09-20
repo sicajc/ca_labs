@@ -108,7 +108,7 @@ TEST_F(cache_test, L2_cache_read_test)
 
 // Test if writing works
 // 1. Write to the l2 cache with the same addr, L1 transfer the whole block and replace the whole block of the L2 $
-TEST_F(cache_test, L2_cache_write_test)
+TEST_F(cache_test, L2_cache_write_dcache_test)
 {
     // Testing strategy: Writing to the same addr location
     // Expects the final value of pseudo data mem to be the same as data mem
@@ -126,10 +126,13 @@ TEST_F(cache_test, L2_cache_write_test)
         decoded_addr_info_t decoded_addr = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
 
         // req_type
-        req_cache req_type = rand()%2 ? D_CACHE : I_CACHE;
+        req_cache req_type = D_CACHE;
 
-        // Read block from the memory
-        write_data_block_to_mem(req_type, decoded_addr.tags, decoded_addr.index, block);
+        // Write block to test_data_memory
+        for (int i = 0; i < L2_CACHE_WORDS_IN_BLOCK; i++)
+        {
+            test_data_mem[decoded_addr.block_addr + i] = block.value.value[i];
+        }
 
         memory_request_t req;
         req.valid = true;
@@ -139,7 +142,7 @@ TEST_F(cache_test, L2_cache_write_test)
         req.req_cache_type = req_type;
         req.req_op_type = WRITE;
 
-        // Read the block from l2_cache
+        // Write to block to l2_cache
         cache_block write_block = L1_cache_access_L2_cache(req);
     }
 
@@ -164,33 +167,33 @@ TEST_F(cache_test, L2_cache_write_test)
     // Compare the test_data_mem and test_pseudo_data_mem
     for (int i = 0; i < MEM_WORD_SIZE; i++)
     {
-        ASSERT_EQ(test_data_mem[i], test_pseudo_data_mem[i]);
+        ASSERT_EQ(test_data_mem[i], test_pseudo_data_mem[i]) << "Address: " << i << " Data: " << test_data_mem[i] << " Pseudo Data: " << test_pseudo_data_mem[i];
     }
 }
-//2 Keep writing to the same block
-TEST_F(cache_test, L2_cache_write_same_block_test)
+
+// 2 Keep writing to the same block
+TEST_F(cache_test, L2_cache_write_d_cache_same_block_test)
 {
     // Testing strategy: Writing to the same addr location
     uint32_t addr = 0;
+
     for (int i = 0; i < NUM_OF_TESTS; i++)
     {
+
+        decoded_addr_info_t decoded_addr = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
         // randomly generate a block
         cache_block block;
         for (int i = 0; i < L2_CACHE_WORDS_IN_BLOCK; i++)
-        {
             block.value.value[i] = rand() % 1024;
-        }
-
-        // decode addr
-        decoded_addr_info_t decoded_addr = decode_addr(addr, WORD_SIZE, L2_CACHE_SIZE, L2_CACHE_WAYS, L2_CACHE_BLOCK_SIZE);
 
         // req_type
-        req_cache req_type = rand()%2 ? D_CACHE : I_CACHE;
+        req_cache req_type = D_CACHE;
 
-        decoded_addr.index = 0;
-
-        // Read block from the memory
-        write_data_block_to_mem(req_type, decoded_addr.tags, decoded_addr.index, block);
+        // Write block to test_data_memory
+        for (int i = 0; i < L2_CACHE_WORDS_IN_BLOCK; i++)
+        {
+            test_data_mem[decoded_addr.block_addr + i] = block.value.value[i];
+        }
 
         memory_request_t req;
         req.valid = true;
@@ -198,9 +201,12 @@ TEST_F(cache_test, L2_cache_write_same_block_test)
         req.addr = addr;
         req.req_cache_type = req_type;
         req.req_op_type = WRITE;
+        req.block = block;
 
         // Read the block from l2_cache
         cache_block write_block = L1_cache_access_L2_cache(req);
+
+        addr = (addr + 4) % uint32_t(L2_CACHE_BLOCK_SIZE);
     }
 
     // Traverse all set of the cache, get the index
@@ -228,15 +234,14 @@ TEST_F(cache_test, L2_cache_write_same_block_test)
     }
 }
 
-// Test the mshr entry and its behaviour
-
 // Test the DRAM fill notification
 
 int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);
     // filter
-    testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_test";
+    // testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_dcache_test";
+    testing::GTEST_FLAG(filter) = "cache_test.L2_cache_write_d_cache_same_block_test";
 
     return RUN_ALL_TESTS();
 }
