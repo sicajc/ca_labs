@@ -149,6 +149,7 @@ typedef struct memory_request
     uint32_t cycle_time = 0;
     enum req_op_type  req_op_type;
     enum req_cache    req_cache_type;
+
 } memory_request_t, fill_request_t;
 
 typedef struct mshr_entry

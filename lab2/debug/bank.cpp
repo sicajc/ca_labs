@@ -211,3 +211,18 @@ void update_bank_status()
 
     return;
 }
+
+void display_bank()
+{
+    // display the bank status
+    std::cout << "======================================" << std::endl;
+    for (int i = 0; i < NUM_BANKS; i++)
+    {
+        std::cout << "Bank " << i << " status: " << banks[i].status << std::endl;
+        std::cout << "Bank " << i << " stall cycles: " << banks[i].bank_stall_cycles << std::endl;
+        // row buffer status
+        std::cout << "Bank " << i << " row buffer status: " << banks[i].row_buffer.valid << std::endl;
+        std::cout << "Bank " << i << " row buffer row id: " << banks[i].row_buffer.row_id << std::endl;
+    }
+    std::cout << "======================================" << std::endl;
+}

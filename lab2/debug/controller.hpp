@@ -21,5 +21,8 @@ bool is_row_buffer_hit(uint32_t addr);
 
 void mark_channel_busy();
 
+bool send_fill_req_to_l2();
+
+void display_controller();
 // update controller status
 void update_controller_status();

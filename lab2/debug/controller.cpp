@@ -1,7 +1,9 @@
 #include "channel.hpp"
 #include "dram_typedef.hpp"
+#include "l2_cache.hpp"
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 std::vector<l2_mem_request_t> req_queue;
 std::vector<dram_cmds_t> dram_cmds_issue_queue;
@@ -16,6 +18,12 @@ bool is_row_buffer_hit(uint32_t addr)
 {
     bank_decoded_addr_t decoded_addr = bank_decode_addr(addr);
     return banks[decoded_addr.bank_id].row_buffer.row_id == decoded_addr.row_id;
+}
+
+bool is_cmd_issueable(uint32_t addr, req_op_type read)
+{
+    bank_decoded_addr_t decoded_addr = bank_decode_addr(addr);
+    return !bank_is_busy(addr) && !channel_is_busy();
 }
 
 l2_mem_request_t issue_request()
@@ -45,7 +53,7 @@ l2_mem_request_t issue_request()
         // search for row buffer hit commands first
         for (auto it = req_queue.begin(); it != req_queue.end(); it++)
         {
-            if (is_row_buffer_hit(it->addr) == true)
+            if (is_row_buffer_hit(it->addr) == true && is_cmd_issueable(it->addr, it->read) == true)
             {
                 req = *it;
                 req_queue.erase(it);
@@ -56,7 +64,7 @@ l2_mem_request_t issue_request()
         // Then search for the req from memory stage(D_CACHE)
         for (auto it = req_queue.begin(); it != req_queue.end(); it++)
         {
-            if (it->req_cache_type == D_CACHE)
+            if (it->req_cache_type == D_CACHE && is_cmd_issueable(it->addr, it->read) == true)
             {
                 req = *it;
                 req_queue.erase(it);
@@ -66,12 +74,6 @@ l2_mem_request_t issue_request()
 
         return req;
     }
-}
-
-bool is_cmd_issueable(uint32_t addr, req_op_type read)
-{
-    bank_decoded_addr_t decoded_addr = bank_decode_addr(addr);
-    return !bank_is_busy(addr) && !channel_is_busy();
 }
 
 void send_command_to_channel(req_op_type _req_type, data_block _block, uint32_t addr)
@@ -128,8 +130,38 @@ void send_command_to_channel(req_op_type _req_type, data_block _block, uint32_t 
     return;
 }
 
+bool send_fill_req_to_l2()
+{
+    // check if channel is in issue rd wr states
+    if (_channel.status != CHANNEL_RD_WR)
+    {
+        return false;
+    }
+
+    // check channel stall time is not zero
+    if (_channel.channel_stall_cycles > 0)
+    {
+        return false;
+    }
+
+    // check if command is rd
+    if (_channel.command_bus == RD)
+    {
+        // send the data to the l2 cache
+        return true;
+    }
+    else
+    {
+
+        return false;
+    }
+}
+
 void update_controller()
 {
+    // see if there is req to send into l2
+    send_fill_req_to_l2();
+
     // check if the request queue is empty
     if (req_queue.empty())
     {
@@ -148,5 +180,36 @@ void update_controller()
     // send the command to the channel
     send_command_to_channel(req.read, req.data_block, req.addr);
 
+    // send fill rq to l2
+    if (send_fill_req_to_l2())
+    {
+        fill_request_t dram_req;
+        cache_block block;
+
+        for (int i = 0; i < CACHE_LINE_SIZE / WORD; i++)
+        {
+            block.value.value[i] = _channel.data_bus.words[i];
+        }
+
+        dram_req.addr = req.addr;
+        dram_req.req_cache_type = req.req_cache_type;
+        dram_req.req_op_type = req.read;
+
+        // sends the request to l2
+
+
+    }
+
     return;
+}
+
+void display_controller()
+{
+    // display the controller status
+    std::cout << "======================================" << std::endl;
+    std::cout << "Controller Status: " << _channel.status << std::endl;
+    std::cout << "Controller Command: " << _channel.command_bus << std::endl;
+    std::cout << "Controller Address: " << _channel.addr_bus << std::endl;
+    std::cout << "Controller Stall Cycles: " << _channel.channel_stall_cycles << std::endl;
+    std::cout << "======================================" << std::endl;
 }

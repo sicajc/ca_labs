@@ -1,4 +1,5 @@
 #include "dram_subsystem.hpp"
+#include <iostream>
 void dram_subsystem_init()
 {
     init_controller();
@@ -16,7 +17,8 @@ void dram_subsystem_update()
 
 void dram_subsystem_display()
 {
-    // display_controller();
+    std::cerr << "DRAM cycle: " << dram_cycles << std::endl;
+    display_controller();
     display_channel();
-    // display_bank();
+    display_bank();
 }

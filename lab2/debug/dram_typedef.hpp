@@ -34,6 +34,7 @@ typedef struct l2_mem_request
     uint32_t cycle_time;
     bool valid;
     enum req_cache req_cache_type;
+
 } l2_mem_request_t;
 
 

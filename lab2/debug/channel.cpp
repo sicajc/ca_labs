@@ -1,5 +1,6 @@
 #include "channel.hpp"
 #include <cstdint>
+#include <iostream>
 
 void channel_init()
 {
@@ -37,4 +38,15 @@ void update_channel_status()
     }
 
     return;
+}
+
+void display_channel()
+{
+    // display the channel status, data and command
+    std::cout << "======================================" << std::endl;
+    std::cout << "Channel Status: " << _channel.status << std::endl;
+    std::cout << "Channel Command: " << _channel.command_bus << std::endl;
+    std::cout << "Channel Address: " << _channel.addr_bus << std::endl;
+    std::cout << "Channel Stall Cycles: " << _channel.channel_stall_cycles << std::endl;
+    std::cout << "======================================" << std::endl;
 }

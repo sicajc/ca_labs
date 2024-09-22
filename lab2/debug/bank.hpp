@@ -30,5 +30,7 @@ bank_decoded_addr_t bank_decode_addr(const uint32_t addr);
 //check if bank is busy
 bool bank_is_busy(uint32_t addr);
 
+void display_bank();
+
 // Updates bank status
 void update_bank_status();
