@@ -7,6 +7,7 @@ void init_L2_cache()
 {
     init_l2_cache();
     init_mshr();
+    l2_cache_stall_cycles = 0;
 }
 
 // Two caches uses this function, L1D and L1I
@@ -83,4 +84,40 @@ bool DRAM_fill_notification(fill_request_t dram_fill_req)
 
     // send fill notification to L1 cache
     return true;
+}
+
+void send_req_to_dram(memory_request_t req)
+{
+    decoded_addr_info_t decoded_addr = decode_addr(req.addr,
+                                                   WORD_SIZE,
+                                                   L2_CACHE_SIZE,
+                                                   L2_CACHE_WAYS,
+                                                   L2_CACHE_BLOCK_SIZE);
+
+    // send request to dram
+    l2_req_to_dram.valid = true;
+    l2_req_to_dram.addr = decoded_addr.block_addr;
+    l2_req_to_dram.block = req.block;
+    l2_req_to_dram.cycle_time = req.cycle_time;
+    l2_req_to_dram.req_op_type = req.req_op_type;
+    l2_req_to_dram.req_cache_type = req.req_cache_type;
+
+    return;
+}
+
+void update_L2_cache_states()
+{
+    // if stall cycles is not zero, decrement it
+    if (l2_cache_stall_cycles > 0)
+    {
+        l2_cache_stall_cycles--;
+    }
+
+    // check if the request from l1 is valid
+
+    // if the req from l1 is valid,accesses
+    L1_cache_access_L2_cache(l2_req_to_dram);
+
+    // If needs to access dram, send the req to dram
+    send_req_to_dram(l2_req_to_dram);
 }

@@ -194,10 +194,11 @@ void update_controller()
         dram_req.addr = req.addr;
         dram_req.req_cache_type = req.req_cache_type;
         dram_req.req_op_type = req.read;
+        dram_req.cycle_time = req.cycle_time;
+        dram_req.block = block;
 
         // sends the request to l2
-
-
+        dram_req_to_l2 = dram_req;
     }
 
     return;

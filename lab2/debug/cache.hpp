@@ -143,13 +143,22 @@ enum req_cache
 // memory request
 typedef struct memory_request
 {
-    uint32_t valid = false;
-    uint32_t addr = 0;
+    uint32_t valid;
+    uint32_t addr;
     cache_block block;
-    uint32_t cycle_time = 0;
+    uint32_t cycle_time;
     enum req_op_type  req_op_type;
     enum req_cache    req_cache_type;
 
+    // Initialize the memory request
+    memory_request()
+    {
+        valid = false;
+        addr = 0;
+        cycle_time = 0;
+        req_op_type = READ;
+        req_cache_type = D_CACHE;
+    }
 } memory_request_t, fill_request_t;
 
 typedef struct mshr_entry
