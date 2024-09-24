@@ -11,13 +11,13 @@
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
-#include "shell.h"
 #include "pipe.h"
+#include "shell.h"
 
 /***************************************************************/
 /* Statistics.                                                 */
@@ -25,37 +25,37 @@
 
 uint32_t stat_cycles = 0, stat_inst_retire = 0, stat_inst_fetch = 0;
 uint32_t stat_squash = 0;
+uint32_t stat_inst_cache_hits = 0, stat_inst_cache_misses = 0;
+uint32_t stat_data_cache_hits = 0, stat_data_cache_misses = 0;
 
 /***************************************************************/
 /* Main memory.                                                */
 /***************************************************************/
 
-#define MEM_DATA_START  0x10000000
-#define MEM_DATA_SIZE   0x00100000
-#define MEM_TEXT_START  0x00400000
-#define MEM_TEXT_SIZE   0x00100000
+#define MEM_DATA_START 0x10000000
+#define MEM_DATA_SIZE 0x00100000
+#define MEM_TEXT_START 0x00400000
+#define MEM_TEXT_SIZE 0x00100000
 #define MEM_STACK_START 0x7ff00000
-#define MEM_STACK_SIZE  0x00100000
+#define MEM_STACK_SIZE 0x00100000
 #define MEM_KDATA_START 0x90000000
-#define MEM_KDATA_SIZE  0x00100000
+#define MEM_KDATA_SIZE 0x00100000
 #define MEM_KTEXT_START 0x80000000
-#define MEM_KTEXT_SIZE  0x00100000
+#define MEM_KTEXT_SIZE 0x00100000
 
 typedef struct {
-    uint32_t start, size;
-    uint8_t *mem;
+  uint32_t start, size;
+  uint8_t *mem;
 } mem_region_t;
 
 /* memory will be dynamically allocated at initialization */
-mem_region_t MEM_REGIONS[] = {
-    { MEM_TEXT_START, MEM_TEXT_SIZE, NULL },
-    { MEM_DATA_START, MEM_DATA_SIZE, NULL },
-    { MEM_STACK_START, MEM_STACK_SIZE, NULL },
-    { MEM_KDATA_START, MEM_KDATA_SIZE, NULL },
-    { MEM_KTEXT_START, MEM_KTEXT_SIZE, NULL }
-};
+mem_region_t MEM_REGIONS[] = {{MEM_TEXT_START, MEM_TEXT_SIZE, NULL},
+                              {MEM_DATA_START, MEM_DATA_SIZE, NULL},
+                              {MEM_STACK_START, MEM_STACK_SIZE, NULL},
+                              {MEM_KDATA_START, MEM_KDATA_SIZE, NULL},
+                              {MEM_KTEXT_START, MEM_KTEXT_SIZE, NULL}};
 
-#define MEM_NREGIONS (sizeof(MEM_REGIONS)/sizeof(mem_region_t))
+#define MEM_NREGIONS (sizeof(MEM_REGIONS) / sizeof(mem_region_t))
 
 int RUN_BIT = TRUE;
 
@@ -66,23 +66,21 @@ int RUN_BIT = TRUE;
 /* Purpose: Read a 32-bit word from memory                     */
 /*                                                             */
 /***************************************************************/
-uint32_t mem_read_32(uint32_t address)
-{
-    // reads a word, 32 bits = 4 bytes gets read from the memory
-    for (unsigned int i = 0; i < MEM_NREGIONS; i++) {
-        if (address >= MEM_REGIONS[i].start &&
-                address < (MEM_REGIONS[i].start + MEM_REGIONS[i].size)) {
-            uint32_t offset = address - MEM_REGIONS[i].start;
+uint32_t mem_read_32(uint32_t address) {
+  uint32_t i;
+  for (i = 0; i < MEM_NREGIONS; i++) {
+    if (address >= MEM_REGIONS[i].start &&
+        address < (MEM_REGIONS[i].start + MEM_REGIONS[i].size)) {
+      uint32_t offset = address - MEM_REGIONS[i].start;
 
-            return
-                (MEM_REGIONS[i].mem[offset+3] << 24) |
-                (MEM_REGIONS[i].mem[offset+2] << 16) |
-                (MEM_REGIONS[i].mem[offset+1] <<  8) |
-                (MEM_REGIONS[i].mem[offset+0] <<  0);
-        }
+      return (MEM_REGIONS[i].mem[offset + 3] << 24) |
+             (MEM_REGIONS[i].mem[offset + 2] << 16) |
+             (MEM_REGIONS[i].mem[offset + 1] << 8) |
+             (MEM_REGIONS[i].mem[offset + 0] << 0);
     }
+  }
 
-    return 0;
+  return 0;
 }
 
 /***************************************************************/
@@ -92,21 +90,20 @@ uint32_t mem_read_32(uint32_t address)
 /* Purpose: Write a 32-bit word to memory                      */
 /*                                                             */
 /***************************************************************/
-void mem_write_32(uint32_t address, uint32_t value)
-{
-    int i;
-    for (i = 0; i < MEM_NREGIONS; i++) {
-        if (address >= MEM_REGIONS[i].start &&
-                address < (MEM_REGIONS[i].start + MEM_REGIONS[i].size)) {
-            uint32_t offset = address - MEM_REGIONS[i].start;
+void mem_write_32(uint32_t address, uint32_t value) {
+  uint32_t i;
+  for (i = 0; i < MEM_NREGIONS; i++) {
+    if (address >= MEM_REGIONS[i].start &&
+        address < (MEM_REGIONS[i].start + MEM_REGIONS[i].size)) {
+      uint32_t offset = address - MEM_REGIONS[i].start;
 
-            MEM_REGIONS[i].mem[offset+3] = (value >> 24) & 0xFF;
-            MEM_REGIONS[i].mem[offset+2] = (value >> 16) & 0xFF;
-            MEM_REGIONS[i].mem[offset+1] = (value >>  8) & 0xFF;
-            MEM_REGIONS[i].mem[offset+0] = (value >>  0) & 0xFF;
-            return;
-        }
+      MEM_REGIONS[i].mem[offset + 3] = (value >> 24) & 0xFF;
+      MEM_REGIONS[i].mem[offset + 2] = (value >> 16) & 0xFF;
+      MEM_REGIONS[i].mem[offset + 1] = (value >> 8) & 0xFF;
+      MEM_REGIONS[i].mem[offset + 0] = (value >> 0) & 0xFF;
+      return;
     }
+  }
 }
 
 /***************************************************************/
@@ -158,8 +155,8 @@ void run(int num_cycles) {
   printf("Simulating for %d cycles...\n\n", num_cycles);
   for (i = 0; i < num_cycles; i++) {
     if (RUN_BIT == FALSE) {
-	    printf("Simulator halted\n\n");
-	    break;
+      printf("Simulator halted\n\n");
+      break;
     }
     cycle();
   }
@@ -192,21 +189,26 @@ void go() {
 /*                                                             */
 /***************************************************************/
 void rdump() {
-    int i;
+  int i;
 
-    printf("PC: 0x%08x\n", pipe.PC);
+  printf("PC: 0x%08x\n", pipe.PC);
 
-    for (i = 0; i < 32; i++) {
-        printf("R%d: 0x%08x\n", i, pipe.REGS[i]);
-    }
+  for (i = 0; i < 32; i++) {
+    printf("R%d: 0x%08x\n", i, pipe.REGS[i]);
+  }
 
-    printf("HI: 0x%08x\n", pipe.HI);
-    printf("LO: 0x%08x\n", pipe.LO);
-    printf("Cycles: %u\n", stat_cycles);
-    printf("FetchedInstr: %u\n", stat_inst_fetch);
-    printf("RetiredInstr: %u\n", stat_inst_retire);
-    printf("IPC: %0.3f\n", ((float) stat_inst_retire) / stat_cycles);
-    printf("Flushes: %u\n", stat_squash);
+  printf("HI: 0x%08x\n", pipe.HI);
+  printf("LO: 0x%08x\n", pipe.LO);
+  printf("Cycles: %u\n", stat_cycles);
+  printf("FetchedInstr: %u\n", stat_inst_fetch);
+  printf("RetiredInstr: %u\n", stat_inst_retire);
+  printf("IPC: %0.3f\n", ((float)stat_inst_retire) / stat_cycles);
+  printf("Flushes: %u\n", stat_squash);
+  /* every miss is also counted as a hit */
+  printf("InstHit: %u\n", stat_inst_cache_hits - stat_inst_cache_misses); 
+  printf("InstMiss: %u\n", stat_inst_cache_misses); 
+  printf("DataHit: %u\n", stat_data_cache_hits - stat_data_cache_misses); 
+  printf("DataMiss: %u\n", stat_data_cache_misses); 
 }
 
 /***************************************************************/
@@ -242,11 +244,11 @@ void get_command() {
   printf("MIPS-SIM> ");
 
   if (scanf("%s", buffer) == EOF)
-      exit(0);
+    exit(0);
 
   printf("\n");
 
-  switch(buffer[0]) {
+  switch (buffer[0]) {
   case 'G':
   case 'g':
     go();
@@ -255,7 +257,7 @@ void get_command() {
   case 'M':
   case 'm':
     if (scanf("%i %i", &start, &stop) != 2)
-        break;
+      break;
 
     mdump(start, stop);
     break;
@@ -271,37 +273,38 @@ void get_command() {
   case 'R':
   case 'r':
     if (buffer[1] == 'd' || buffer[1] == 'D')
-        rdump();
+      rdump();
     else {
-	    if (scanf("%d", &cycles) != 1) break;
-	    run(cycles);
+      if (scanf("%d", &cycles) != 1)
+        break;
+      run(cycles);
     }
     break;
 
   case 'I':
   case 'i':
-   if (scanf("%i %i", &register_no, &register_value) != 2)
+    if (scanf("%i %i", &register_no, &register_value) != 2)
       break;
 
-   printf("%i %i\n", register_no, register_value);
-   pipe.REGS[register_no] = register_value;
-   break;
+    printf("%i %i\n", register_no, register_value);
+    pipe.REGS[register_no] = register_value;
+    break;
 
   case 'H':
   case 'h':
-   if (scanf("%i", &register_value) != 1)
+    if (scanf("%i", &register_value) != 1)
       break;
 
-   pipe.HI = register_value;
-   break;
+    pipe.HI = register_value;
+    break;
 
   case 'L':
   case 'l':
-   if (scanf("%i", &register_value) != 1)
+    if (scanf("%i", &register_value) != 1)
       break;
 
-   pipe.LO = register_value;
-   break;
+    pipe.LO = register_value;
+    break;
 
   default:
     printf("Invalid Command\n");
@@ -317,11 +320,11 @@ void get_command() {
 /*                                                             */
 /***************************************************************/
 void init_memory() {
-    int i;
-    for (i = 0; i < MEM_NREGIONS; i++) {
-        MEM_REGIONS[i].mem = (uint8_t *) malloc(MEM_REGIONS[i].size);
-        memset(MEM_REGIONS[i].mem, 0, MEM_REGIONS[i].size);
-    }
+  uint32_t i;
+  for (i = 0; i < MEM_NREGIONS; i++) {
+    MEM_REGIONS[i].mem = malloc(MEM_REGIONS[i].size);
+    memset(MEM_REGIONS[i].mem, 0, MEM_REGIONS[i].size);
+  }
 }
 
 /**************************************************************/
@@ -332,7 +335,7 @@ void init_memory() {
 /*                                                            */
 /**************************************************************/
 void load_program(char *program_filename) {
-  FILE * prog;
+  FILE *prog;
   int ii, word;
 
   /* Open program file. */
@@ -350,7 +353,7 @@ void load_program(char *program_filename) {
     ii += 4;
   }
 
-  printf("Read %d words from program into memory.\n\n", ii/4);
+  printf("Read %d words from program into memory.\n\n", ii / 4);
 }
 
 /************************************************************/
@@ -366,9 +369,10 @@ void initialize(char *program_filename, int num_prog_files) {
 
   init_memory();
   pipe_init();
-  for ( i = 0; i < num_prog_files; i++ ) {
+  for (i = 0; i < num_prog_files; i++) {
     load_program(program_filename);
-    while(*program_filename++ != '\0');
+    while (*program_filename++ != '\0')
+      ;
   }
 
   RUN_BIT = TRUE;
@@ -383,8 +387,7 @@ int main(int argc, char *argv[]) {
 
   /* Error Checking */
   if (argc < 2) {
-    printf("Error: usage: %s <program_file_1> <program_file_2> ...\n",
-           argv[0]);
+    printf("Error: usage: %s <program_file_1> <program_file_2> ...\n", argv[0]);
     exit(1);
   }
 
@@ -392,9 +395,6 @@ int main(int argc, char *argv[]) {
 
   initialize(argv[1], argc - 1);
 
-
-
   while (1)
     get_command();
-
 }
